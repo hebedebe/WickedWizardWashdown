@@ -222,9 +222,9 @@ class Game:
                 # Update input manager
                 self.input_manager.update(self.fixed_timestep)
                 
-                # Update current scene
+                # Update current scene (fixed timestep for physics)
                 if self.current_scene:
-                    self.current_scene.update(self.fixed_timestep)
+                    self.current_scene.fixed_update(self.fixed_timestep)
                 
                 # Update networking
                 self.network_manager.update()
@@ -235,11 +235,19 @@ class Game:
             interpolation = self.accumulator / self.fixed_timestep
             self.delta_time = frame_time
             
+            # Variable timestep updates
+            if self.current_scene:
+                self.current_scene.update(frame_time)
+            
             # Render
             self.screen.fill((0, 0, 0))  # Clear screen
             
             if self.current_scene:
                 self.current_scene.render(self.screen)
+                
+                # Render physics debug if scene has physics
+                if hasattr(self.current_scene, 'physics_world') and self.current_scene.physics_world:
+                    self.current_scene.physics_world.debug_draw(self.screen)
                 
             pygame.display.flip()
             self.clock.tick(self.target_fps)

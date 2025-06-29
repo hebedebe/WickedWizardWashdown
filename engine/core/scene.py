@@ -3,7 +3,7 @@ Scene management system for organizing and managing game actors.
 """
 
 import pygame
-from typing import List, Dict, Optional, Type, TypeVar
+from typing import List, Dict, Optional, Type, TypeVar, Tuple
 from .actor import Actor, Component
 
 T = TypeVar('T', bound=Component)
@@ -13,7 +13,7 @@ class Scene:
     Container for managing actors and game objects.
     """
     
-    def __init__(self, name: str = "Scene"):
+    def __init__(self, name: str = "Scene", enable_physics: bool = True, gravity: Tuple[float, float] = (0, 981)):
         self.name = name
         self.game = None  # Will be set by Game class
         
@@ -30,6 +30,69 @@ class Scene:
         self.background_color = pygame.Color(0, 0, 0)
         self.background_image: Optional[pygame.Surface] = None
         
+        # Physics world (per-scene)
+        self.physics_enabled = enable_physics
+        self.physics_world = None
+        self.physics_gravity = gravity
+        
+        if self.physics_enabled:
+            self._create_physics_world()
+            
+    def _create_physics_world(self):
+        """Create the physics world for this scene."""
+        from ..components.physics_world import PhysicsWorld
+        self.physics_world = PhysicsWorld(self.physics_gravity)
+        self.physics_world.setup_default_collision_handlers()
+        
+    def set_physics_gravity(self, gravity: Tuple[float, float]):
+        """Set the physics gravity for this scene."""
+        self.physics_gravity = gravity
+        if self.physics_world:
+            self.physics_world.set_gravity(gravity)
+            
+    def enable_physics(self, gravity: Tuple[float, float] = (0, 981)):
+        """Enable physics for this scene."""
+        if not self.physics_enabled:
+            self.physics_enabled = True
+            self.physics_gravity = gravity
+            self._create_physics_world()
+            
+    def disable_physics(self):
+        """Disable physics for this scene."""
+        if self.physics_enabled:
+            if self.physics_world:
+                self.physics_world.clear()
+                self.physics_world = None
+            self.physics_enabled = False
+            
+    def add_physics_collision_handler(self, collision_type_a: int, collision_type_b: int, **kwargs):
+        """Add collision handler for this scene's physics world."""
+        if self.physics_world:
+            self.physics_world.add_collision_handler(collision_type_a, collision_type_b, **kwargs)
+            
+    def set_physics_debug_draw(self, enable: bool = True):
+        """Enable/disable physics debug drawing for this scene."""
+        if self.physics_world and self.game:
+            self.physics_world.set_debug_draw(self.game.screen, enable)
+            
+    def toggle_physics_debug_draw(self):
+        """Toggle physics debug drawing for this scene."""
+        if self.physics_world and self.game:
+            self.physics_world.show_debug = not self.physics_world.show_debug
+            self.physics_world.set_debug_draw(self.game.screen, self.physics_world.show_debug)
+            
+    def query_physics_point(self, point: pygame.Vector2, max_distance: float = 0.0):
+        """Query physics objects at a point in this scene."""
+        if self.physics_world:
+            return self.physics_world.query_point_nearest((point.x, point.y), max_distance)
+        return None
+        
+    def raycast_physics(self, start: pygame.Vector2, end: pygame.Vector2):
+        """Perform a physics raycast in this scene."""
+        if self.physics_world:
+            return self.physics_world.raycast((start.x, start.y), (end.x, end.y))
+        return None
+        
     def add_actor(self, actor: Actor) -> None:
         """Add an actor to the scene."""
         if actor not in self.actors:
@@ -41,6 +104,28 @@ class Scene:
                 if tag not in self.actors_by_tag:
                     self.actors_by_tag[tag] = []
                 self.actors_by_tag[tag].append(actor)
+                
+            # Initialize physics components if this scene has physics
+            if self.physics_enabled and self.physics_world:
+                self._initialize_actor_physics(actor)
+                
+    def _initialize_actor_physics(self, actor: Actor):
+        """Initialize physics components for an actor."""
+        for component in actor.component_list:
+            if hasattr(component, '_create_physics_body') and hasattr(component, 'body'):
+                if not component.body:  # Only initialize if not already done
+                    component._create_physics_body(self.physics_world)
+                
+            # Initialize physics components if this scene has physics
+            if self.physics_world:
+                self._initialize_actor_physics(actor)
+                
+    def _initialize_actor_physics(self, actor: Actor):
+        """Initialize physics components for an actor."""
+        from ..components.physics_component import PhysicsComponent
+        for component in actor.component_list:
+            if isinstance(component, PhysicsComponent) and not component.body:
+                component._create_physics_body(self.physics_world)
                 
     def remove_actor(self, actor: Actor) -> None:
         """Remove an actor from the scene."""
@@ -96,9 +181,18 @@ class Scene:
         actor.destroy()
         
     def clear(self) -> None:
-        """Remove all actors from the scene."""
+        """Remove all actors from the scene and clean up physics."""
+        # Clear physics world first
+        if self.physics_world:
+            self.physics_world.clear()
+            
+        # Then clear all actors
         for actor in list(self.actors):
             self.destroy_actor(actor)
+            
+        # Recreate physics world if physics is enabled
+        if self.physics_enabled:
+            self._create_physics_world()
             
     def set_background_color(self, color: pygame.Color) -> None:
         """Set the scene background color."""
@@ -122,6 +216,10 @@ class Scene:
         """Fixed timestep update for physics."""
         if self.paused:
             return
+            
+        # Update physics world
+        if self.physics_enabled and self.physics_world:
+            self.physics_world.step(dt)
             
         for actor in self.actors:
             if actor.active:
@@ -148,6 +246,26 @@ class Scene:
         for actor in self.actors:
             if actor.active:
                 actor.handle_event(event)
+                
+    def on_enter(self) -> None:
+        """Called when the scene becomes active."""
+        # Re-enable physics if it was disabled
+        if self.physics_enabled and not self.physics_world:
+            self._create_physics_world()
+        pass
+        
+    def on_exit(self) -> None:
+        """Called when the scene becomes inactive."""
+        # Optionally pause physics when scene exits
+        pass
+        
+    def on_pause(self) -> None:
+        """Called when the scene is paused (pushed to stack)."""
+        pass
+        
+    def on_resume(self) -> None:
+        """Called when the scene is resumed (popped from stack)."""
+        pass
                 
     def on_enter(self) -> None:
         """Called when the scene becomes active."""
