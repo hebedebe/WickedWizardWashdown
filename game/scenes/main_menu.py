@@ -2,6 +2,8 @@ from engine import Game, Scene, Actor, Component, InputManager, AssetManager, Ne
 from engine.ui import UIManager, FPSDisplay, Button
 from engine.particles import create_fire_emitter
 import pygame
+import math
+import time
 
 class MainMenuScene(Scene):
     """Main game scene with FPS display."""
@@ -127,7 +129,7 @@ class MainMenuScene(Scene):
         # Add some sample content using default font
         title_font = Game.get_instance().asset_manager.get_default_font(48)
         title_text = title_font.render("Wicked Wizard Washdown", True, pygame.Color(255, 255, 255))
-        title_rect = title_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+        title_rect = title_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100 - math.sin(time.time() * 1) * 10))
         screen.blit(title_text, title_rect)
         
         # Instructions using smaller default font
