@@ -1,0 +1,21 @@
+{
+  "game_config": {
+    "title": "Wicked Wizard Washdown",
+    "version": "1.0.0",
+    "default_width": 800,
+    "default_height": 600,
+    "target_fps": 60
+  },
+  "player_config": {
+    "default_speed": 200,
+    "default_health": 100,
+    "default_color": [0, 255, 0]
+  },
+  "enemy_config": {
+    "spawn_rate": 3.0,
+    "max_enemies": 10,
+    "default_speed": 80,
+    "default_health": 30,
+    "default_color": [255, 0, 0]
+  }
+}
