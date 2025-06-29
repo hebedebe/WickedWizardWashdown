@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Any, Callable, Set
 from enum import Enum
 import uuid
 
-from .actor import Actor, Component
+from ..core.actor import Actor, Component
 
 
 class NetworkRole(Enum):

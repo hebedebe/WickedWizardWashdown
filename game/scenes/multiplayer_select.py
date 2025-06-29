@@ -1,5 +1,5 @@
 from engine import Game, Scene
-from engine.ui import UIManager, Button, Label
+from engine.rendering.ui import UIManager, Button, Label
 import pygame
 
 class MultiplayerSelectScene(Scene):
@@ -91,7 +91,7 @@ class MultiplayerSelectScene(Scene):
         print("Starting as host...")
         
         # Get network manager and attempt to host
-        from engine.networking import get_network_manager
+        from engine.networking.networking import get_network_manager
         network_manager = get_network_manager()
         
         # Try to start hosting before going to lobby

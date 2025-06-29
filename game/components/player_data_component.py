@@ -1,4 +1,4 @@
-from engine.components import Component
+from engine.core.actor import Component
 from ..player_data import PlayerCosmeticData
 
 class PlayerDataComponent(Component):    

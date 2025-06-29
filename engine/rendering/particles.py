@@ -6,7 +6,7 @@ import pygame
 import math
 import random
 from typing import List, Optional, Callable, Dict, Any
-from .actor import Component
+from ..core.actor import Component
 
 class Particle:
     """

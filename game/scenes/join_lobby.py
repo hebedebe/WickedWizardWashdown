@@ -1,5 +1,5 @@
 from engine import Game, Scene
-from engine.ui import UIManager, Button, Label, TextInput
+from engine.rendering.ui import UIManager, Button, Label, TextInput
 import pygame
 
 class JoinLobbyScene(Scene):
@@ -133,7 +133,7 @@ class JoinLobbyScene(Scene):
             status_label.set_text(f"Connecting to {self.host_address}:{self.port}...")
         
         # Get network manager and attempt connection
-        from engine.networking import get_network_manager
+        from engine.networking.networking import get_network_manager
         network_manager = get_network_manager()
         
         try:

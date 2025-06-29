@@ -6,7 +6,7 @@ Includes scene synchronization, player management, and optimization utilities.
 from typing import Dict, Any, Optional, List
 from .networking import NetworkManager, NetworkMessage, MessageType, NetworkPriority, get_network_manager
 from .network_components import NetworkedActorManager, get_networked_actor_manager
-from .scene import Scene
+from ..core.scene import Scene
 
 
 class NetworkedSceneManager:

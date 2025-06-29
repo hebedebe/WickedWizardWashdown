@@ -6,7 +6,7 @@ Handles serialization, spawning, and synchronization of networked actors.
 import time
 import uuid
 from typing import Dict, Any, Optional, Set, List, Type
-from .actor import Actor, Component
+from ..core.actor import Actor, Component
 from .networking import NetworkManager, NetworkMessage, MessageType, NetworkPriority, get_network_manager
 
 
