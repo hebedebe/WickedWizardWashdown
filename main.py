@@ -1,10 +1,18 @@
+"""
+Wicked Wizard Washdown - Main Entry Point
+A 2D networked game engine demonstration.
+"""
+
 from engine import Game, NetworkComponent
 from game import scenes
 
 
-if __name__ == "__main__":
+def main():
+    """Initialize and run the game."""
+    # Create the game instance
     game = Game(800, 600, "Wicked Wizard Washdown")
     
+    # Add all game scenes
     game.add_scene("main_menu", scenes.MainMenuScene())
     game.add_scene("settings", scenes.SettingsScene())
     game.add_scene("game_select", scenes.GameSelectScene())
@@ -12,8 +20,15 @@ if __name__ == "__main__":
     game.add_scene("lobby", scenes.LobbyScene())
     game.add_scene("game", scenes.GameScene())
     
+    # Configure networking
     NetworkComponent.set_network_manager(game.network_manager)
 
+    # Start with the main menu
     game.load_scene("main_menu")
 
+    # Run the game
     game.run()
+
+
+if __name__ == "__main__":
+    main()

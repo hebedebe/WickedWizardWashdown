@@ -1,4 +1,4 @@
-from engine import Game, Scene, Actor, Component, InputManager, AssetManager, NetworkManager
+from engine import Game, Scene
 from engine.ui import UIManager, FPSDisplay, Button
 from engine.particles import create_fire_emitter
 import pygame
@@ -83,7 +83,8 @@ class MainMenuScene(Scene):
         
     def on_play_clicked(self, event) -> None:
         """Handle play button click."""
-        Game.get_instance().load_scene("game")
+        if self.game:
+            self.game.push_scene("game_select")
         
     def on_settings_clicked(self, event) -> None:
         """Handle settings button click."""

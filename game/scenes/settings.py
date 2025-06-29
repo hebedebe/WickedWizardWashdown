@@ -1,6 +1,5 @@
-from engine import Game, Scene, Actor, Component, InputManager, AssetManager, NetworkManager
-from engine.ui import UIManager, FPSDisplay, Button
-from engine.particles import create_fire_emitter
+from engine import Game, Scene
+from engine.ui import UIManager, Button, Label, Slider
 import pygame
 
 class SettingsScene(Scene):
@@ -25,7 +24,6 @@ class SettingsScene(Scene):
         
     def create_settings_ui(self) -> None:
         """Create the settings UI elements."""
-        from engine.ui import Label, Slider
         screen_size = pygame.display.get_surface().get_size()
         
         # Title label
