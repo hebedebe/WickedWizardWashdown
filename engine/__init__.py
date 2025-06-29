@@ -17,6 +17,11 @@ from .components import (
     SpriteComponent, PhysicsComponent, InputComponent, 
     AudioComponent, HealthComponent
 )
+from .physics import (
+    PhysicsWorld, PhysicsSystem, PhysicsBodyComponent,
+    RigidBodyComponent, StaticBodyComponent, KinematicBodyComponent,
+    PhysicsConstraintComponent
+)
 from .network_component import NetworkComponent, NetworkOwnership
 from .enhanced_animation import FileAnimationComponent, AnimationFrame, AnimationSequence, PropertyAnimation, EasingType, create_animation_template
 
@@ -31,6 +36,9 @@ __all__ = [
     'SpriteComponent', 'PhysicsComponent', 'InputComponent', 
     'AudioComponent', 'AnimationComponent', 'HealthComponent',
     'FileAnimationComponent', 'AnimationFrame', 'AnimationSequence', 'PropertyAnimation', 'EasingType', 'create_animation_template',
+    'PhysicsWorld', 'PhysicsSystem', 'PhysicsBodyComponent',
+    'RigidBodyComponent', 'StaticBodyComponent', 'KinematicBodyComponent',
+    'PhysicsConstraintComponent',
     'NetworkComponent', 'NetworkOwnership',
     'ParticleSystem', 'ParticleEmitter', 'Particle',
     'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay',
@@ -82,6 +90,7 @@ class Game:
         self.input_manager = InputManager()
         self.asset_manager = AssetManager()
         self.network_manager = NetworkManager()
+        self.physics_system = PhysicsSystem()
         
         # Scene management
         self.scenes: Dict[str, Scene] = {}
@@ -203,6 +212,9 @@ class Game:
             while self.accumulator >= self.fixed_timestep:
                 # Update input manager
                 self.input_manager.update(self.fixed_timestep)
+                
+                # Update physics
+                self.physics_system.update(self.fixed_timestep)
                 
                 # Update current scene
                 if self.current_scene:
