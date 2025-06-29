@@ -28,7 +28,7 @@ from .enhanced_animation import FileAnimationComponent, AnimationFrame, Animatio
 # Backward compatibility alias
 AnimationComponent = FileAnimationComponent
 from .particles import ParticleSystem, ParticleEmitter, Particle
-from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay
+from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay, TextInput
 
 # Export main classes
 __all__ = [
@@ -41,7 +41,7 @@ __all__ = [
     'PhysicsConstraintComponent',
     'NetworkComponent', 'NetworkOwnership',
     'ParticleSystem', 'ParticleEmitter', 'Particle',
-    'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay',
+    'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay', 'TextInput',
     'InputManager', 'AssetManager', 'NetworkManager'
 ]
 

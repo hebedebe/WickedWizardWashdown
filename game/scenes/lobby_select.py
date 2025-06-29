@@ -68,15 +68,22 @@ class LobbySelectScene(Scene):
         
     def on_create_lobby_clicked(self, event) -> None:
         """Handle create lobby button click."""
-        if self.game:
-            # For now, just go to lobby scene as host
+        if self.game and hasattr(self.game, 'network_manager') and self.game.network_manager:
+            # Start the server on the default port (or configurable if you wish)
+            port = 12345
+            self.game.network_manager.start_server(port=port)
+            print(f"Lobby server started on port {port}")
             self.game.load_scene("lobby")
+        else:
+            print("Network manager not available, proceeding to lobby for testing")
+            if self.game:
+                self.game.load_scene("lobby")
             
     def on_join_lobby_clicked(self, event) -> None:
         """Handle join lobby button click."""
         if self.game:
-            # For now, just go to lobby scene as client
-            self.game.load_scene("lobby")
+            # Navigate to the join lobby scene
+            self.game.load_scene("join_lobby")
             
     def on_back_clicked(self, event) -> None:
         """Handle back button click."""
