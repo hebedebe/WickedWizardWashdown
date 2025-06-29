@@ -22,6 +22,14 @@ class NetworkRole(Enum):
     NONE = "none"
 
 
+class NetworkPriority(Enum):
+    """Network message priority levels."""
+    INSTANT = "instant"      # Chat messages, critical events
+    HIGH = "high"           # Player actions, game state changes
+    MEDIUM = "medium"       # Regular updates, position sync
+    LOW = "low"             # Background data, statistics
+
+
 class MessageType(Enum):
     """Types of network messages."""
     # Connection
@@ -42,6 +50,9 @@ class MessageType(Enum):
     # Scene management
     SCENE_CHANGE = "scene_change"
     
+    # Custom/Application messages
+    CUSTOM_MESSAGE = "custom_message"
+    
     # Synchronization
     FULL_SYNC_REQUEST = "full_sync_request"
     FULL_SYNC_DATA = "full_sync_data"
@@ -52,14 +63,16 @@ class MessageType(Enum):
 
 
 class NetworkMessage:
-    """Network message container."""
+    """Network message container with priority support."""
     
     def __init__(self, msg_type: MessageType, data: Dict[str, Any], 
-                 sender_id: str = None, timestamp: float = None):
+                 sender_id: str = None, timestamp: float = None, 
+                 priority: NetworkPriority = NetworkPriority.MEDIUM):
         self.type = msg_type
         self.data = data
         self.sender_id = sender_id
         self.timestamp = timestamp or time.time()
+        self.priority = priority
         self.id = str(uuid.uuid4())
     
     def to_dict(self) -> Dict[str, Any]:
@@ -69,17 +82,20 @@ class NetworkMessage:
             'data': self.data,
             'sender_id': self.sender_id,
             'timestamp': self.timestamp,
+            'priority': self.priority.value,
             'id': self.id
         }
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'NetworkMessage':
         """Create message from dictionary."""
+        priority = NetworkPriority(data.get('priority', NetworkPriority.MEDIUM.value))
         return cls(
             MessageType(data['type']),
             data['data'],
             data.get('sender_id'),
-            data.get('timestamp')
+            data.get('timestamp'),
+            priority
         )
 
 
@@ -164,13 +180,36 @@ class NetworkClient:
             self.outbound_queue.put(message)
     
     def disconnect(self):
-        """Disconnect the client."""
+        """Disconnect the client with proper thread cleanup."""
+        if not self.connected:
+            return
+            
+        print(f"Disconnecting client {self.client_id}")
         self.connected = False
-        self.outbound_queue.put(None)  # Shutdown signal
+        
+        # Send shutdown signal to send thread
+        try:
+            self.outbound_queue.put(None, timeout=0.1)
+        except queue.Full:
+            pass
+        
+        # Close socket to break receive thread
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except:
+            pass
         try:
             self.socket.close()
         except:
             pass
+        
+        # Wait for threads to finish
+        if self.receive_thread and self.receive_thread.is_alive():
+            self.receive_thread.join(timeout=1.0)
+        if self.send_thread and self.send_thread.is_alive():
+            self.send_thread.join(timeout=1.0)
+            
+        print(f"Client {self.client_id} disconnected cleanly")
 
 
 class NetworkManager:
@@ -195,12 +234,31 @@ class NetworkManager:
         self.last_update_time = 0.0
         self.update_rate = 20.0  # 20 updates per second
         
+        # Priority-based message queues
+        self.instant_queue = queue.PriorityQueue()  # For chat and critical messages
+        self.high_queue = queue.PriorityQueue()     # For player actions
+        self.medium_queue = queue.PriorityQueue()   # For regular updates
+        self.low_queue = queue.PriorityQueue()      # For background data
+        
+        # Update rate control per priority
+        self.priority_rates = {
+            NetworkPriority.INSTANT: 0.0,    # No delay - immediate
+            NetworkPriority.HIGH: 1.0/60.0,  # 60 FPS
+            NetworkPriority.MEDIUM: 1.0/20.0, # 20 FPS
+            NetworkPriority.LOW: 1.0/5.0      # 5 FPS
+        }
+        self.last_priority_update = {priority: 0.0 for priority in NetworkPriority}
+        
         # Callbacks
         self.on_client_connected: Optional[Callable[[str], None]] = None
         self.on_client_disconnected: Optional[Callable[[str], None]] = None
         self.on_actor_spawned: Optional[Callable[[Actor], None]] = None
         self.on_actor_destroyed: Optional[Callable[[str], None]] = None
         self.on_scene_changed: Optional[Callable[[str], None]] = None
+        self.on_custom_message: Optional[Callable[[str, Dict[str, Any], str, float], None]] = None
+        
+        # Custom message handlers by event type
+        self.custom_message_handlers: Dict[str, List[Callable]] = {}
         
         # Game reference
         self.game = None
@@ -231,13 +289,33 @@ class NetworkManager:
     def host(self, ip: str = "localhost", port: int = 8888) -> bool:
         """Start hosting a server."""
         if self.role != NetworkRole.NONE:
+            print(f"Cannot host: NetworkManager already in role {self.role.value}")
+            return False
+        
+        if self.is_running:
+            print("Cannot host: NetworkManager is already running")
+            return False
+        
+        # Check if another instance is already hosting on this port
+        if self._is_port_in_use(ip, port):
+            print(f"Cannot host: Another server is already running on {ip}:{port}")
             return False
         
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            # DO NOT use SO_REUSEADDR for hosting - we want exclusive port access
+            # This prevents multiple hosts on the same port
+            # self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            # Set socket to non-blocking to allow proper error handling
+            self.server_socket.settimeout(5.0)  # 5 second timeout for bind
+            
             self.server_socket.bind((ip, port))
             self.server_socket.listen(self.max_players - 1)  # -1 for host
+            
+            # Reset to blocking after successful bind
+            self.server_socket.settimeout(None)
             
             self.role = NetworkRole.SERVER
             self.is_running = True
@@ -249,11 +327,54 @@ class NetworkManager:
             )
             self.listen_thread.start()
             
-            print(f"Server started on {ip}:{port}")
+            print(f"Server started successfully on {ip}:{port}")
             return True
             
+        except OSError as e:
+            if e.errno == 10048:  # Windows: Address already in use
+                print(f"Cannot host: Port {port} is already in use by another application")
+            elif e.errno == 98:  # Linux: Address already in use
+                print(f"Cannot host: Port {port} is already in use by another application")
+            else:
+                print(f"Failed to start server on {ip}:{port}: {e}")
+            
+            if self.server_socket:
+                self.server_socket.close()
+                self.server_socket = None
+            self.role = NetworkRole.NONE
+            self.is_running = False
+            return False
+            
+        except socket.error as e:
+            print(f"Socket error starting server on {ip}:{port}: {e}")
+            if self.server_socket:
+                self.server_socket.close()
+                self.server_socket = None
+            self.role = NetworkRole.NONE
+            self.is_running = False
+            return False
+            
         except Exception as e:
-            print(f"Failed to start server: {e}")
+            print(f"Unexpected error starting server: {e}")
+            if self.server_socket:
+                self.server_socket.close()
+                self.server_socket = None
+            self.role = NetworkRole.NONE
+            self.is_running = False
+            return False
+    
+    def _is_port_in_use(self, ip: str, port: int) -> bool:
+        """Check if a port is already in use."""
+        try:
+            test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_socket.settimeout(1.0)
+            result = test_socket.connect_ex((ip, port))
+            test_socket.close()
+            
+            # If connect_ex returns 0, the port is in use
+            return result == 0
+        except Exception:
+            # If we can't test, assume it's not in use
             return False
     
     def connect(self, ip: str = "localhost", port: int = 8888) -> bool:
@@ -293,63 +414,108 @@ class NetworkManager:
             return False
     
     def disconnect(self):
-        """Disconnect from network."""
+        """Disconnect from network with proper cleanup."""
         if not self.is_running:
             return
         
+        print("Shutting down network...")
         self.is_running = False
         
         if self.is_server:
-            # Disconnect all clients
+            # Disconnect all clients first
             for client in list(self.clients.values()):
-                client.disconnect()
+                try:
+                    client.disconnect()
+                except Exception as e:
+                    print(f"Error disconnecting client: {e}")
             self.clients.clear()
             
             # Close server socket
             if self.server_socket:
+                try:
+                    self.server_socket.shutdown(socket.SHUT_RDWR)
+                except:
+                    pass  # Socket might already be closed
                 self.server_socket.close()
                 self.server_socket = None
+            
+            # Wait for listen thread to finish
+            if self.listen_thread and self.listen_thread.is_alive():
+                print("Waiting for server thread to finish...")
+                self.listen_thread.join(timeout=2.0)
+                if self.listen_thread.is_alive():
+                    print("Warning: Server thread did not shutdown cleanly")
                 
         elif self.is_client:
             # Disconnect from server
             if self.server_client:
-                disconnect_msg = NetworkMessage(
-                    MessageType.DISCONNECT,
-                    {"client_id": self.client_id}
-                )
-                self.server_client.send_message(disconnect_msg)
-                self.server_client.disconnect()
+                try:
+                    disconnect_msg = NetworkMessage(
+                        MessageType.DISCONNECT,
+                        {"client_id": self.client_id}
+                    )
+                    self.server_client.send_message(disconnect_msg)
+                    self.server_client.disconnect()
+                except Exception as e:
+                    print(f"Error sending disconnect message: {e}")
                 self.server_client = None
             
             if self.client_socket:
+                try:
+                    self.client_socket.shutdown(socket.SHUT_RDWR)
+                except:
+                    pass
                 self.client_socket.close()
                 self.client_socket = None
         
         self.role = NetworkRole.NONE
-        print("Disconnected from network")
+        print("Network disconnected cleanly")
     
     def _listen_for_connections(self):
         """Listen for incoming client connections (server only)."""
-        while self.is_running:
+        print("Server listening for connections...")
+        while self.is_running and self.server_socket:
             try:
+                # Set a timeout so we can check is_running periodically
+                self.server_socket.settimeout(1.0)
                 client_socket, address = self.server_socket.accept()
+                
+                # Reset to blocking mode for the client socket
+                client_socket.settimeout(None)
                 
                 # Check if we have room for more clients
                 if len(self.clients) >= self.max_players - 1:
-                    client_socket.close()
+                    print(f"Server full, rejecting connection from {address}")
+                    try:
+                        client_socket.close()
+                    except:
+                        pass
                     continue
                 
-                # Create client wrapper
-                client_id = str(uuid.uuid4())
-                client = NetworkClient(client_socket, client_id, address)
+                # Create client wrapper with temporary ID
+                # The real client_id will be set when we receive the connect request
+                temp_client_id = f"temp_{int(time.time())}_{len(self.clients)}"
+                client = NetworkClient(client_socket, temp_client_id, address)
                 
-                self.clients[client_id] = client
+                # Store with temporary ID for now
+                self.clients[temp_client_id] = client
                 client.start_threads(self)
                 
-                print(f"Client {client_id} connected from {address}")
+                print(f"New connection from {address}, waiting for connect request...")
                 
-            except OSError:
+            except socket.timeout:
+                # Timeout is expected, just continue the loop to check is_running
+                continue
+            except OSError as e:
+                if self.is_running:
+                    print(f"Server socket error: {e}")
                 break
+            except Exception as e:
+                if self.is_running:
+                    print(f"Unexpected error in server listen thread: {e}")
+                break
+        
+        print("Server listen thread ended")
     
     def _handle_message(self, message: NetworkMessage, sender: NetworkClient):
         """Handle incoming network messages."""
@@ -375,6 +541,8 @@ class NetworkManager:
             self._handle_ping(message, sender)
         elif message.type == MessageType.PONG:
             self._handle_pong(message, sender)
+        elif message.type == MessageType.CUSTOM_MESSAGE:
+            self._handle_custom_message(message, sender)
     
     def _handle_connect_request(self, message: NetworkMessage, sender: NetworkClient):
         """Handle client connection request."""
@@ -382,26 +550,40 @@ class NetworkManager:
             return
         
         client_id = message.data.get("client_id")
-        if client_id:
-            sender.client_id = client_id
-            
-            # Send connection response
-            response = NetworkMessage(
-                MessageType.CONNECT_RESPONSE,
-                {
-                    "accepted": True,
-                    "server_id": "server",
-                    "client_id": client_id
-                }
-            )
-            sender.send_message(response)
-            
-            # Notify game of new client
-            if self.on_client_connected:
-                self.on_client_connected(client_id)
-            
-            # Send full sync to new client
-            self._send_full_sync(sender)
+        if not client_id:
+            print("Connect request missing client_id")
+            return
+        
+        # Get the old temporary ID
+        old_temp_id = sender.client_id
+        
+        # Update the client with the real ID
+        sender.client_id = client_id
+        
+        # Update the clients dictionary with the new ID
+        if old_temp_id in self.clients:
+            del self.clients[old_temp_id]
+        self.clients[client_id] = sender
+        
+        print(f"Client {client_id} connected (was {old_temp_id})")
+        
+        # Send connection response
+        response = NetworkMessage(
+            MessageType.CONNECT_RESPONSE,
+            {
+                "accepted": True,
+                "server_id": "server",
+                "client_id": client_id
+            }
+        )
+        sender.send_message(response)
+        
+        # Notify game of new client
+        if self.on_client_connected:
+            self.on_client_connected(client_id)
+        
+        # Send full sync to new client
+        self._send_full_sync(sender)
     
     def _handle_disconnect(self, message: NetworkMessage, sender: NetworkClient):
         """Handle client disconnect."""
@@ -465,6 +647,19 @@ class NetworkManager:
         """Handle pong message."""
         sender.last_ping = time.time()
     
+    def _handle_custom_message(self, message: NetworkMessage, sender: NetworkClient):
+        """Handle custom messages with priority-based processing."""
+        # For instant messages, process immediately
+        if message.priority == NetworkPriority.INSTANT:
+            self._handle_custom_message_locally(message)
+            
+            # Broadcast to other clients immediately if we're the server
+            if self.is_server:
+                self.broadcast_message(message, exclude_client=sender.client_id)
+        else:
+            # Queue for priority-based processing
+            self._queue_message_by_priority(message)
+    
     def _send_full_sync(self, client: NetworkClient):
         """Send full synchronization data to a client."""
         if not self.game or not self.game.current_scene:
@@ -493,11 +688,165 @@ class NetworkManager:
         if self.is_server and client_id in self.clients:
             self.clients[client_id].send_message(message)
     
-    def update(self):
-        """Update network manager."""
+    def send_custom_message(self, event_type: str, data: Dict[str, Any], 
+                           priority: NetworkPriority = NetworkPriority.MEDIUM, 
+                           sender_name: str = None):
+        """Send a custom application message with specified priority."""
+        custom_msg = NetworkMessage(
+            MessageType.CUSTOM_MESSAGE,
+            {
+                "event_type": event_type,
+                "event_data": data,
+                "sender_name": sender_name or "Unknown",
+                "timestamp": time.time()
+            },
+            sender_id=self.client_id,
+            priority=priority
+        )
+        
+        if self.is_server:
+            # Broadcast to all clients
+            self.broadcast_message(custom_msg)
+            # Also handle locally for the host
+            self._handle_custom_message_locally(custom_msg)
+        elif self.is_client:
+            # Send to server
+            self.send_to_server(custom_msg)
+    
+    def register_custom_handler(self, event_type: str, handler: Callable[[Dict[str, Any], str, float], None]):
+        """Register a handler for a specific custom message event type."""
+        if event_type not in self.custom_message_handlers:
+            self.custom_message_handlers[event_type] = []
+        self.custom_message_handlers[event_type].append(handler)
+    
+    def unregister_custom_handler(self, event_type: str, handler: Callable):
+        """Unregister a custom message handler."""
+        if event_type in self.custom_message_handlers:
+            if handler in self.custom_message_handlers[event_type]:
+                self.custom_message_handlers[event_type].remove(handler)
+    
+    def _handle_custom_message_locally(self, message: NetworkMessage):
+        """Handle custom message locally without broadcasting."""
+        data = message.data
+        event_type = data.get("event_type", "unknown")
+        event_data = data.get("event_data", {})
+        sender_name = data.get("sender_name", "Unknown")
+        timestamp = data.get("timestamp", time.time())
+        
+        # Call the general custom message callback
+        if self.on_custom_message:
+            self.on_custom_message(event_type, event_data, sender_name, timestamp)
+        
+        # Call specific handlers for this event type
+        if event_type in self.custom_message_handlers:
+            for handler in self.custom_message_handlers[event_type]:
+                try:
+                    handler(event_data, sender_name, timestamp)
+                except Exception as e:
+                    print(f"Error in custom message handler for {event_type}: {e}")
+    
+    # Convenience methods for common message types
+    def send_chat_message(self, sender_name: str, message: str):
+        """Send a chat message (convenience method using custom messages)."""
+        self.send_custom_message(
+            "chat", 
+            {"message": message}, 
+            NetworkPriority.INSTANT, 
+            sender_name
+        )
+    
+    def announce_player_joined(self, player_name: str):
+        """Announce that a player joined (convenience method)."""
+        self.send_custom_message(
+            "player_join", 
+            {"player_name": player_name}, 
+            NetworkPriority.HIGH
+        )
+        
+    def announce_player_left(self, player_name: str):
+        """Announce that a player left (convenience method)."""
+        self.send_custom_message(
+            "player_leave", 
+            {"player_name": player_name}, 
+            NetworkPriority.HIGH
+        )
+    
+    def update_lobby_info(self, lobby_data: Dict[str, Any]):
+        """Update lobby information (convenience method)."""
+        self.send_custom_message(
+            "lobby_update", 
+            lobby_data, 
+            NetworkPriority.MEDIUM
+        )
+    
+    def _process_priority_queues(self):
+        """Process messages based on priority and timing."""
         current_time = time.time()
         
-        # Throttle updates
+        # Process instant messages immediately (chat, critical events)
+        self._process_queue_with_priority(NetworkPriority.INSTANT, current_time)
+        
+        # Process other queues based on their update rates
+        for priority in [NetworkPriority.HIGH, NetworkPriority.MEDIUM, NetworkPriority.LOW]:
+            if current_time - self.last_priority_update[priority] >= self.priority_rates[priority]:
+                self._process_queue_with_priority(priority, current_time)
+                self.last_priority_update[priority] = current_time
+    
+    def _process_queue_with_priority(self, priority: NetworkPriority, current_time: float):
+        """Process a specific priority queue."""
+        queue_map = {
+            NetworkPriority.INSTANT: self.instant_queue,
+            NetworkPriority.HIGH: self.high_queue,
+            NetworkPriority.MEDIUM: self.medium_queue,
+            NetworkPriority.LOW: self.low_queue
+        }
+        
+        target_queue = queue_map.get(priority)
+        if not target_queue:
+            return
+        
+        # Process a batch of messages from this priority queue
+        batch_size = 10 if priority == NetworkPriority.INSTANT else 5
+        processed = 0
+        
+        while not target_queue.empty() and processed < batch_size:
+            try:
+                _, message = target_queue.get_nowait()
+                self._handle_priority_message(message)
+                processed += 1
+            except queue.Empty:
+                break
+    
+    def _handle_priority_message(self, message: NetworkMessage):
+        """Handle a message from the priority queue system."""
+        # Route the message based on its type
+        if message.type == MessageType.CUSTOM_MESSAGE:
+            self._handle_custom_message_locally(message)
+        # Add more message type handlers as needed
+    
+    def _queue_message_by_priority(self, message: NetworkMessage):
+        """Queue a message based on its priority."""
+        queue_map = {
+            NetworkPriority.INSTANT: self.instant_queue,
+            NetworkPriority.HIGH: self.high_queue,
+            NetworkPriority.MEDIUM: self.medium_queue,
+            NetworkPriority.LOW: self.low_queue
+        }
+        
+        target_queue = queue_map.get(message.priority, self.medium_queue)
+        
+        # Use timestamp as priority value (earlier messages processed first)
+        priority_value = message.timestamp
+        target_queue.put((priority_value, message))
+
+    def update(self):
+        """Update network manager with priority-based processing."""
+        current_time = time.time()
+        
+        # Always process instant priority messages (chat, critical events)
+        self._process_priority_queues()
+        
+        # Throttle regular updates
         if current_time - self.last_update_time < 1.0 / self.update_rate:
             return
         
@@ -516,8 +865,18 @@ class NetworkManager:
 
 
 # Global network manager instance
-_network_manager = NetworkManager()
+_network_manager = None
 
 def get_network_manager() -> NetworkManager:
     """Get the global network manager instance."""
+    global _network_manager
+    if _network_manager is None:
+        _network_manager = NetworkManager()
     return _network_manager
+
+def reset_network_manager():
+    """Reset the global network manager (for testing/cleanup)."""
+    global _network_manager
+    if _network_manager:
+        _network_manager.disconnect()
+        _network_manager = None

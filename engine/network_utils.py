@@ -4,7 +4,7 @@ Includes scene synchronization, player management, and optimization utilities.
 """
 
 from typing import Dict, Any, Optional, List
-from .networking import NetworkManager, NetworkMessage, MessageType, get_network_manager
+from .networking import NetworkManager, NetworkMessage, MessageType, NetworkPriority, get_network_manager
 from .network_components import NetworkedActorManager, get_networked_actor_manager
 from .scene import Scene
 
@@ -251,11 +251,114 @@ class NetworkDebugger:
         return issues
 
 
+class CustomMessageHelper:
+    """Helper class for managing custom network messages easily."""
+    
+    def __init__(self, network_manager=None):
+        self.network_manager = network_manager or get_network_manager()
+        self.registered_handlers = {}
+    
+    def register_handler(self, event_type: str, handler_func, priority=None):
+        """Register a handler for a custom message type.
+        
+        Args:
+            event_type: The event type string (e.g., 'chat', 'game_event', 'player_action')
+            handler_func: Function to call when this event is received
+            priority: Optional NetworkPriority for sending messages of this type
+        """
+        self.network_manager.register_custom_handler(event_type, handler_func)
+        
+        # Store metadata about this handler
+        self.registered_handlers[event_type] = {
+            'handler': handler_func,
+            'priority': priority or NetworkPriority.MEDIUM
+        }
+    
+    def send(self, event_type: str, data: Dict[str, Any], sender_name: str = None):
+        """Send a custom message with the registered priority for this event type."""
+        handler_info = self.registered_handlers.get(event_type)
+        priority = handler_info['priority'] if handler_info else NetworkPriority.MEDIUM
+        
+        self.network_manager.send_custom_message(
+            event_type, 
+            data, 
+            priority, 
+            sender_name
+        )
+    
+    def broadcast_chat(self, sender_name: str, message: str):
+        """Convenience method for chat messages."""
+        self.send("chat", {"message": message}, sender_name)
+    
+    def broadcast_game_event(self, event_name: str, event_data: Dict[str, Any], sender_name: str = None):
+        """Convenience method for game events."""
+        self.send("game_event", {"event": event_name, "data": event_data}, sender_name)
+    
+    def broadcast_player_action(self, action: str, action_data: Dict[str, Any], player_name: str):
+        """Convenience method for player actions."""
+        self.send("player_action", {"action": action, "data": action_data}, player_name)
+    
+    def setup_common_handlers(self):
+        """Setup handlers for common message types with appropriate priorities."""
+        
+        # Chat messages - instant priority
+        def chat_handler(event_data, sender_name, timestamp):
+            message = event_data.get("message", "")
+            print(f"[CHAT] {sender_name}: {message}")
+        
+        self.register_handler("chat", chat_handler, NetworkPriority.INSTANT)
+        
+        # Game events - high priority
+        def game_event_handler(event_data, sender_name, timestamp):
+            event_name = event_data.get("event", "unknown")
+            data = event_data.get("data", {})
+            print(f"[GAME EVENT] {event_name} from {sender_name}: {data}")
+        
+        self.register_handler("game_event", game_event_handler, NetworkPriority.HIGH)
+        
+        # Player actions - high priority
+        def player_action_handler(event_data, sender_name, timestamp):
+            action = event_data.get("action", "unknown")
+            data = event_data.get("data", {})
+            print(f"[PLAYER ACTION] {sender_name} performed {action}: {data}")
+        
+        self.register_handler("player_action", player_action_handler, NetworkPriority.HIGH)
+        
+        # Lobby updates - medium priority
+        def lobby_update_handler(event_data, sender_name, timestamp):
+            print(f"[LOBBY UPDATE] from {sender_name}: {event_data}")
+        
+        self.register_handler("lobby_update", lobby_update_handler, NetworkPriority.MEDIUM)
+
+
+# Example usage for developers:
+"""
+# Create a custom message helper
+msg_helper = CustomMessageHelper()
+
+# Setup common handlers with appropriate priorities
+msg_helper.setup_common_handlers()
+
+# Add custom handlers for your game
+def handle_spell_cast(event_data, sender_name, timestamp):
+    spell_name = event_data.get("spell", "unknown")
+    target = event_data.get("target", "none")
+    print(f"{sender_name} cast {spell_name} on {target}")
+
+msg_helper.register_handler("spell_cast", handle_spell_cast, NetworkPriority.HIGH)
+
+# Send custom messages easily
+msg_helper.broadcast_chat("Player1", "Hello everyone!")
+msg_helper.broadcast_game_event("round_start", {"round": 1, "time_limit": 300})
+msg_helper.send("spell_cast", {"spell": "fireball", "target": "enemy1"}, "Wizard123")
+"""
+
 # Global instances
 _networked_scene_manager = NetworkedSceneManager()
 _player_manager = PlayerManager()
 _network_optimizer = NetworkOptimizer()
 _network_debugger = NetworkDebugger()
+_custom_message_helper = None
 
 def get_networked_scene_manager() -> NetworkedSceneManager:
     """Get the global networked scene manager."""
@@ -272,6 +375,13 @@ def get_network_optimizer() -> NetworkOptimizer:
 def get_network_debugger() -> NetworkDebugger:
     """Get the global network debugger."""
     return _network_debugger
+
+def get_custom_message_helper() -> CustomMessageHelper:
+    """Get the global custom message helper."""
+    global _custom_message_helper
+    if _custom_message_helper is None:
+        _custom_message_helper = CustomMessageHelper()
+    return _custom_message_helper
 
 def change_scene_networked(scene_name: str) -> bool:
     """Change scene across the network."""

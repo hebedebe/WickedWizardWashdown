@@ -9,22 +9,30 @@ from game import scenes
 
 def main():
     """Initialize and run the game."""
+    print("Starting Wicked Wizard Washdown...")
+    
     # Create the game instance
     game = Game(800, 600, "Wicked Wizard Washdown")
+    print("Game instance created.")
     
     # Add all game scenes
+    print("Adding scenes...")
     game.add_scene("main_menu", scenes.MainMenuScene())
     game.add_scene("settings", scenes.SettingsScene())
     game.add_scene("multiplayer_select", scenes.MultiplayerSelectScene())
     game.add_scene("join_lobby", scenes.JoinLobbyScene())
     game.add_scene("lobby", scenes.LobbyScene())
     game.add_scene("game", scenes.GameScene())
+    print("All scenes added.")
 
     # Start with the main menu
+    print("Loading main menu scene...")
     game.load_scene("main_menu")
 
     # Run the game
+    print("Starting game loop...")
     game.run()
+    print("Game loop ended.")
 
 
 if __name__ == "__main__":

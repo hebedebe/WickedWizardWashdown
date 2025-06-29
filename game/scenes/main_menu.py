@@ -98,9 +98,11 @@ class MainMenuScene(Scene):
             
     def on_button_hover(self, event) -> None:
         """Handle button mouse enter - change to hand cursor."""
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
         
     def on_button_leave(self, event) -> None:
         """Handle button mouse leave - restore wizard cursor."""
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         
     def setup_fire_effects(self) -> None:
         """Setup fire particle effect that follows the mouse cursor."""

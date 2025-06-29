@@ -17,9 +17,9 @@ from .components import (
     AudioComponent, HealthComponent, TextComponent
 )
 # Networking imports
-from .networking import NetworkManager, NetworkMessage, MessageType, get_network_manager
+from .networking import NetworkManager, NetworkMessage, MessageType, NetworkPriority, get_network_manager
 from .network_components import (
-    NetworkComponent, NetworkSerialization, NetworkedActorManager,
+    NetworkComponent, NetworkSerialization, NetworkedActorManager, PriorityNetworkComponent,
     spawn_network_actor, destroy_network_actor, request_full_sync,
     get_networked_actor_manager
 )
@@ -49,12 +49,15 @@ __all__ = [
     'PhysicsWorld', 'PhysicsSystem', 'PhysicsBodyComponent',
     'RigidBodyComponent', 'StaticBodyComponent', 'KinematicBodyComponent',
     'PhysicsConstraintComponent',
+    'NetworkManager', 'NetworkMessage', 'MessageType', 'NetworkPriority', 'get_network_manager',
+    'NetworkComponent', 'PriorityNetworkComponent', 'NetworkSerialization', 'NetworkedActorManager',
+    'spawn_network_actor', 'destroy_network_actor', 'request_full_sync', 'get_networked_actor_manager',
+    'NetworkedSceneManager', 'PlayerManager', 'NetworkOptimizer', 'NetworkDebugger',
+    'get_networked_scene_manager', 'get_player_manager', 'get_network_optimizer',
+    'get_network_debugger', 'change_scene_networked',
     'ParticleSystem', 'ParticleEmitter', 'Particle',
     'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay', 'TextInput',
-    'InputManager', 'AssetManager',
-    # Networking components
-    'NetworkComponent', 'NetworkManager', 'NetworkMessage', 'MessageType',
-    'spawn_network_actor', 'destroy_network_actor', 'get_network_manager'
+    'AssetManager', 'InputManager'
 ]
 
 class Game:

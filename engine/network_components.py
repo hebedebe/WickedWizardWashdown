@@ -7,7 +7,7 @@ import time
 import uuid
 from typing import Dict, Any, Optional, Set, List, Type
 from .actor import Actor, Component
-from .networking import NetworkManager, NetworkMessage, MessageType, get_network_manager
+from .networking import NetworkManager, NetworkMessage, MessageType, NetworkPriority, get_network_manager
 
 
 class NetworkSerialization:
@@ -396,6 +396,62 @@ class NetworkComponent(Component):
         
         # Update our state tracking
         self._capture_component_states()
+
+
+class PriorityNetworkComponent(Component):
+    """Network component with configurable update priority."""
+    
+    def __init__(self, update_priority: NetworkPriority = None):
+        super().__init__()
+        self.update_priority = update_priority or NetworkPriority.MEDIUM
+        self.last_sync_time = 0.0
+        self.sync_interval = 0.05  # Default 20 FPS
+        self.force_update = False
+        
+        # Set sync interval based on priority
+        priority_intervals = {
+            NetworkPriority.INSTANT: 0.0,     # Immediate
+            NetworkPriority.HIGH: 1.0/60.0,   # 60 FPS
+            NetworkPriority.MEDIUM: 1.0/20.0, # 20 FPS  
+            NetworkPriority.LOW: 1.0/5.0      # 5 FPS
+        }
+        self.sync_interval = priority_intervals.get(self.update_priority, 0.05)
+        
+    def should_sync(self) -> bool:
+        """Check if this component should sync based on priority and timing."""
+        current_time = time.time()
+        
+        # Instant priority or forced updates always sync
+        if self.update_priority.value == "instant" or self.force_update:
+            self.force_update = False
+            return True
+            
+        # Check if enough time has passed based on priority
+        return (current_time - self.last_sync_time) >= self.sync_interval
+    
+    def mark_for_sync(self):
+        """Mark this component for immediate synchronization."""
+        self.force_update = True
+        
+    def on_sync_completed(self):
+        """Called after synchronization is completed."""
+        self.last_sync_time = time.time()
+        
+    def serialize_for_network(self) -> Dict[str, Any]:
+        """Serialize component data for network transmission."""
+        return {
+            'update_priority': self.update_priority.value,
+            'last_sync_time': self.last_sync_time
+        }
+        
+    def deserialize_from_network(self, data: Dict[str, Any]) -> None:
+        """Deserialize component data from network."""
+        priority_str = data.get('update_priority', 'medium')
+        try:
+            self.update_priority = NetworkPriority(priority_str)
+        except ValueError:
+            self.update_priority = NetworkPriority.MEDIUM
+        self.last_sync_time = data.get('last_sync_time', 0.0)
 
 
 class NetworkedActorManager:
