@@ -119,6 +119,11 @@ class PhysicsBodyComponent(Component):
         self.category = 1
         self.mask = 0xFFFFFFFF
         
+        # Transform synchronization
+        self._physics_driven = True  # When True, physics updates transform
+        self._last_physics_pos = None
+        self._last_physics_angle = None
+        
         # Callbacks
         self.on_collision_begin: Optional[Callable] = None
         self.on_collision_pre_solve: Optional[Callable] = None
@@ -134,11 +139,18 @@ class PhysicsBodyComponent(Component):
         else:
             self.body = pymunk.Body(self.mass, self.moment)
             
-        # Set initial position from actor transform
+        # Set initial position from actor transform (use world position)
         if self.actor:
+            # Ensure transform is up to date before reading world position
+            self.actor.update_transform()
             pos = self.actor.transform.world_position
+            angle = self.actor.transform.world_rotation
             self.body.position = (pos.x, pos.y)
-            self.body.angle = math.radians(self.actor.transform.world_rotation)
+            self.body.angle = math.radians(angle)
+            
+            # Initialize tracking variables
+            self._last_physics_pos = (pos.x, pos.y)
+            self._last_physics_angle = angle
             
     def add_to_space(self) -> None:
         """Add body and shapes to physics space."""
@@ -195,16 +207,102 @@ class PhysicsBodyComponent(Component):
         self.remove_from_space()
         super().on_removed()
         
-    def update(self, dt: float) -> None:
-        """Update actor transform from physics body."""
+    def sync_transform_to_physics(self) -> None:
+        """Sync actor transform to physics body (for manual transform changes)."""
         if not self.body or not self.actor:
             return
             
-        # Update actor position from physics body
-        pos = self.body.position
-        self.actor.transform.local_position.x = pos[0]
-        self.actor.transform.local_position.y = pos[1]
-        self.actor.transform.local_rotation = math.degrees(self.body.angle)
+        # Update transform hierarchy first
+        self.actor.update_transform()
+        
+        # Set physics body to match world transform
+        world_pos = self.actor.transform.world_position
+        world_rot = self.actor.transform.world_rotation
+        
+        self.body.position = (world_pos.x, world_pos.y)
+        self.body.angle = math.radians(world_rot)
+        
+        # Update our tracking variables
+        self._last_physics_pos = (world_pos.x, world_pos.y)
+        self._last_physics_angle = world_rot
+        
+    def update(self, dt: float) -> None:
+        """Update actor transform from physics body."""
+        if not self.body or not self.actor or not self._physics_driven:
+            return
+            
+        # Get current physics body state
+        current_pos = self.body.position
+        current_angle = math.degrees(self.body.angle)
+        
+        # Only update transform if physics body has moved
+        if (self._last_physics_pos is None or 
+            abs(current_pos[0] - self._last_physics_pos[0]) > 0.001 or
+            abs(current_pos[1] - self._last_physics_pos[1]) > 0.001 or
+            abs(current_angle - (self._last_physics_angle or 0)) > 0.01):
+            
+            # Handle world vs local position correctly based on parent hierarchy
+            if self.actor.parent:
+                # If we have a parent, we need to convert world position to local position
+                parent_world_pos = self.actor.parent.transform.world_position
+                parent_world_rot = self.actor.parent.transform.world_rotation
+                parent_world_scale = self.actor.parent.transform.world_scale
+                
+                # Calculate local position relative to parent
+                world_offset = pygame.Vector2(current_pos[0] - parent_world_pos.x, current_pos[1] - parent_world_pos.y)
+                
+                # Unrotate by parent rotation
+                if parent_world_rot != 0:
+                    world_offset = world_offset.rotate(-parent_world_rot)
+                
+                # Unscale by parent scale
+                local_pos = pygame.Vector2(
+                    world_offset.x / parent_world_scale.x if parent_world_scale.x != 0 else world_offset.x,
+                    world_offset.y / parent_world_scale.y if parent_world_scale.y != 0 else world_offset.y
+                )
+                
+                self.actor.transform.local_position = local_pos
+                self.actor.transform.local_rotation = current_angle - parent_world_rot
+            else:
+                # No parent, world position equals local position
+                self.actor.transform.local_position.x = current_pos[0]
+                self.actor.transform.local_position.y = current_pos[1]
+                self.actor.transform.local_rotation = current_angle
+                
+            # Mark transform as dirty to ensure world transform is recalculated
+            self.actor.transform.mark_dirty()
+            
+            # Update tracking variables
+            self._last_physics_pos = current_pos
+            self._last_physics_angle = current_angle
+
+    def set_physics_driven(self, enabled: bool) -> None:
+        """Enable or disable physics-driven transform updates."""
+        self._physics_driven = enabled
+        
+    def is_physics_driven(self) -> bool:
+        """Check if physics is driving the transform updates."""
+        return self._physics_driven
+        
+    def teleport_to(self, position: Tuple[float, float], angle: float = None) -> None:
+        """Instantly move physics body to a new position and optionally rotation."""
+        if not self.body:
+            return
+            
+        # Set physics body position
+        self.body.position = position
+        if angle is not None:
+            self.body.angle = math.radians(angle)
+            
+        # Update tracking variables
+        self._last_physics_pos = position
+        self._last_physics_angle = math.degrees(self.body.angle) if angle is not None else self._last_physics_angle
+        
+        # Clear velocities to prevent momentum from teleport
+        if hasattr(self.body, 'velocity'):
+            self.body.velocity = (0, 0)
+        if hasattr(self.body, 'angular_velocity'):
+            self.body.angular_velocity = 0
 
 
 class RigidBodyComponent(PhysicsBodyComponent):
@@ -257,10 +355,18 @@ class RigidBodyComponent(PhysicsBodyComponent):
         
         self.shapes.append(shape)
         
-        # Set initial position
+        # Set initial position (use world position)
         if self.actor:
+            # Ensure transform is up to date before reading world position
+            self.actor.update_transform()
             pos = self.actor.transform.world_position
+            angle = self.actor.transform.world_rotation
             self.body.position = (pos.x, pos.y)
+            self.body.angle = math.radians(angle)
+            
+            # Initialize tracking variables
+            self._last_physics_pos = (pos.x, pos.y)
+            self._last_physics_angle = angle
 
 
 class StaticBodyComponent(PhysicsBodyComponent):
@@ -302,10 +408,18 @@ class StaticBodyComponent(PhysicsBodyComponent):
         
         self.shapes.append(shape)
         
-        # Set position
+        # Set position (use world position)
         if self.actor:
+            # Ensure transform is up to date before reading world position
+            self.actor.update_transform()
             pos = self.actor.transform.world_position
+            angle = self.actor.transform.world_rotation
             self.body.position = (pos.x, pos.y)
+            self.body.angle = math.radians(angle)
+            
+            # Initialize tracking variables
+            self._last_physics_pos = (pos.x, pos.y)
+            self._last_physics_angle = angle
 
 
 class KinematicBodyComponent(PhysicsBodyComponent):
@@ -343,10 +457,18 @@ class KinematicBodyComponent(PhysicsBodyComponent):
         
         self.shapes.append(shape)
         
-        # Set position
+        # Set position (use world position)
         if self.actor:
+            # Ensure transform is up to date before reading world position
+            self.actor.update_transform()
             pos = self.actor.transform.world_position
+            angle = self.actor.transform.world_rotation
             self.body.position = (pos.x, pos.y)
+            self.body.angle = math.radians(angle)
+            
+            # Initialize tracking variables
+            self._last_physics_pos = (pos.x, pos.y)
+            self._last_physics_angle = angle
             
     def move_to(self, position: Tuple[float, float], duration: float = 0.0) -> None:
         """Move kinematic body to a position."""
@@ -478,3 +600,15 @@ class PhysicsSystem:
     def query_ray(self, start: Tuple[float, float], end: Tuple[float, float]) -> List[pymunk.SegmentQueryInfo]:
         """Query for physics bodies along a ray."""
         return self.physics_world.query_segment(start, end)
+
+    def update_physics_components(self, scene) -> None:
+        """Update all physics components' transforms after physics simulation."""
+        if not scene:
+            return
+            
+        # Find all actors with physics components and update their transforms
+        for actor in scene.actors:
+            physics_comp = actor.get_component(PhysicsBodyComponent)
+            if physics_comp and physics_comp.is_physics_driven():
+                # Update the component's transform from physics
+                physics_comp.update(self.fixed_timestep)

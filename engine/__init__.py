@@ -216,6 +216,10 @@ class Game:
                 # Update physics
                 self.physics_system.update(self.fixed_timestep)
                 
+                # Update physics component transforms
+                if self.current_scene:
+                    self.physics_system.update_physics_components(self.current_scene)
+                
                 # Update current scene
                 if self.current_scene:
                     self.current_scene.update(self.fixed_timestep)
