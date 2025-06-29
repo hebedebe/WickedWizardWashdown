@@ -13,6 +13,7 @@ class MainGameScene(Scene):
     def on_enter(self) -> None:
         super().on_enter()
         
+        
         # Setup UI
         screen_size = pygame.display.get_surface().get_size()
         self.ui_manager = UIManager(screen_size)
@@ -66,7 +67,7 @@ class MainGameScene(Scene):
             if event.key == pygame.K_ESCAPE:
                 if self.game:
                     self.game.quit()
-
+ 
 if __name__ == "__main__":
     game = Game(800, 600, "Wicked Wizard Washdown")
     

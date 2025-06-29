@@ -69,6 +69,12 @@ class Component(ABC):
         self.actor: Optional['Actor'] = None
         self.enabled = True
         
+    @property
+    def game(self):
+        """Get the game instance. Provides easy access to game systems from any component."""
+        from . import Game
+        return Game.get_instance()
+        
     def on_added(self, actor: 'Actor') -> None:
         """Called when component is added to an actor."""
         self.actor = actor
@@ -121,6 +127,12 @@ class Actor:
         
         # Tags for identification
         self.tags: List[str] = []
+        
+    @property
+    def game(self):
+        """Get the game instance. Provides easy access to game systems from any actor."""
+        from . import Game
+        return Game.get_instance()
         
     def add_child(self, child: 'Actor') -> None:
         """Add a child actor."""

@@ -32,8 +32,18 @@ __all__ = [
 
 class Game:
     """
-    Main game class that manages the game loop, scenes, and core systems.
+    Main game class that manages the game loop and core systems.
+    Singleton pattern ensures only one game instance exists.
     """
+    
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls, *args, **kwargs):
+        """Ensure only one instance exists (singleton pattern)."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
     
     def __init__(self, width: int = 800, height: int = 600, title: str = "Wicked Wizard Game"):
         """
@@ -44,6 +54,10 @@ class Game:
             height: Screen height in pixels  
             title: Window title
         """
+        # Prevent re-initialization of singleton
+        if self._initialized:
+            return
+            
         pygame.init()
         
         # Core properties
@@ -76,6 +90,21 @@ class Game:
         
         # Events
         self.event_handlers: Dict[int, List[Callable]] = {}
+        
+        # Mark as initialized
+        Game._initialized = True
+        
+    @classmethod
+    def get_instance(cls):
+        """Get the game instance. Creates one if it doesn't exist."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+        
+    @classmethod
+    def has_instance(cls) -> bool:
+        """Check if a game instance exists."""
+        return cls._instance is not None
         
     def add_scene(self, name: str, scene: Scene) -> None:
         """Add a scene to the game."""
@@ -121,86 +150,71 @@ class Game:
             if handler in self.event_handlers[event_type]:
                 self.event_handlers[event_type].remove(handler)
                 
-    def handle_events(self) -> None:
-        """Process pygame events and call registered handlers."""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
+    def emit_event(self, event_type: int, **kwargs) -> None:
+        """Emit a custom event."""
+        if event_type in self.event_handlers:
+            for handler in self.event_handlers[event_type]:
+                handler(**kwargs)
                 
-            # Call registered event handlers
-            if event.type in self.event_handlers:
-                for handler in self.event_handlers[event.type]:
-                    handler(event)
-                    
-            # Pass events to input manager and current scene
-            self.input_manager.handle_event(event)
-            if self.current_scene:
-                self.current_scene.handle_event(event)
-                
-    def update(self, dt: float) -> None:
-        """Update game systems with delta time."""
-        self.input_manager.update(dt)
-        self.network_manager.update(dt)
-        
-        if self.current_scene:
-            self.current_scene.update(dt)
-            
-    def fixed_update(self) -> None:
-        """Fixed timestep update for physics and networking."""
-        if self.current_scene:
-            self.current_scene.fixed_update(self.fixed_timestep)
-            
-    def render(self) -> None:
-        """Render the current frame."""
-        self.screen.fill((0, 0, 0))  # Clear screen
-        
-        if self.current_scene:
-            self.current_scene.render(self.screen)
-            
-        pygame.display.flip()
+    def quit(self) -> None:
+        """Request the game to quit."""
+        self.running = False
         
     def run(self) -> None:
-        """Main game loop."""
+        """Run the main game loop."""
         self.running = True
         
         while self.running:
             current_time = time.time()
-            self.delta_time = current_time - self.last_time
+            frame_time = current_time - self.last_time
             self.last_time = current_time
             
-            # Cap delta time to prevent spiral of death
-            if self.delta_time > 0.25:
-                self.delta_time = 0.25
-                
-            self.accumulator += self.delta_time
+            # Cap frame time to prevent spiral of death
+            frame_time = min(frame_time, 0.25)
+            
+            # Fixed timestep accumulator
+            self.accumulator += frame_time
             
             # Handle events
-            self.handle_events()
-            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.quit()
+                    
+                # Handle global events
+                if event.type in self.event_handlers:
+                    for handler in self.event_handlers[event.type]:
+                        handler(event)
+                        
+                # Handle input manager
+                self.input_manager.handle_event(event)
+                
+                # Handle current scene
+                if self.current_scene:
+                    self.current_scene.handle_event(event)
+                    
             # Fixed timestep updates
             while self.accumulator >= self.fixed_timestep:
-                self.fixed_update()
+                # Update input manager
+                self.input_manager.update(self.fixed_timestep)
+                
+                # Update current scene
+                if self.current_scene:
+                    self.current_scene.update(self.fixed_timestep)
+                    
                 self.accumulator -= self.fixed_timestep
                 
-            # Variable timestep update
-            self.update(self.delta_time)
+            # Calculate variable timestep for interpolation
+            interpolation = self.accumulator / self.fixed_timestep
+            self.delta_time = frame_time
             
             # Render
-            self.render()
+            self.screen.fill((0, 0, 0))  # Clear screen
             
-            # Maintain target FPS
+            if self.current_scene:
+                self.current_scene.render(self.screen)
+                
+            pygame.display.flip()
             self.clock.tick(self.target_fps)
             
-        self.cleanup()
-        
-    def cleanup(self) -> None:
-        """Clean up resources before exiting."""
-        if self.current_scene:
-            self.current_scene.on_exit()
-        self.asset_manager.cleanup()
-        self.network_manager.cleanup()
+        # Cleanup
         pygame.quit()
-        
-    def quit(self) -> None:
-        """Request the game to quit."""
-        self.running = False

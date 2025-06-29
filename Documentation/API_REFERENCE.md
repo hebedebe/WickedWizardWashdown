@@ -3,24 +3,55 @@
 ## Core Classes
 
 ### Game
-The main game class that manages the game loop and core systems.
+The main game class that manages the game loop and core systems. Implemented as a singleton to ensure only one game instance exists and provide global access.
 
 ```python
 from engine import Game
 
+# Create the game instance (singleton)
 game = Game(width=800, height=600, title="My Game")
+
+# Get the game instance from anywhere in your code
+game = Game.get_instance()
+
+# Check if game instance exists
+if Game.has_instance():
+    game = Game.get_instance()
+
 game.add_scene("main", my_scene)
 game.load_scene("main")
 game.run()
 ```
 
 **Key Methods:**
+- `Game.get_instance()` - Get the singleton game instance
+- `Game.has_instance()` - Check if game instance exists
 - `add_scene(name, scene)` - Add a scene to the game
 - `load_scene(name)` - Switch to a scene
 - `push_scene(name)` - Push scene onto stack
 - `pop_scene()` - Return to previous scene
 - `run()` - Start the game loop
 - `quit()` - Request game to quit
+
+**Singleton Access:**
+Since Game is a singleton, you can access it from anywhere:
+```python
+# From within a component
+class MyComponent(Component):
+    def update(self, dt):
+        game = self.game  # Easy access to game instance
+        game.load_scene("menu")
+
+# From within an actor
+class MyActor(Actor):
+    def update(self, dt):
+        game = self.game  # Easy access to game instance
+        if some_condition:
+            game.quit()
+
+# From anywhere else
+game = Game.get_instance()
+```
 
 ### Actor
 Game entities that can have children and components.
@@ -248,6 +279,13 @@ slider.add_event_handler("value_changed", callback)
 ```python
 panel = Panel(rect, background_color, border_color, border_width)
 panel.add_child(other_widget)
+```
+
+**FPSDisplay:**
+```python
+fps_display = FPSDisplay(rect, update_interval=0.25)
+fps_display.text_color = pygame.Color(255, 255, 0)  # Yellow
+current_fps = fps_display.get_fps()
 ```
 
 ## Input Management
