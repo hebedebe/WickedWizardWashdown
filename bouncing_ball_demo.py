@@ -27,7 +27,14 @@ class BouncingBallDemo(Scene):
         self.width = width
         self.height = height
         self.ball_count = 0
-        self.setup_scene()
+        self.setup_complete = False
+        
+    def on_enter(self):
+        """Called when the scene becomes active."""
+        super().on_enter()
+        if not self.setup_complete:
+            self.setup_scene()
+            self.setup_complete = True
         
     def setup_scene(self):
         """Setup the demo scene with walls and boundaries."""
@@ -82,23 +89,12 @@ class BouncingBallDemo(Scene):
         self.spawn_ball(pygame.Vector2(600, 150), initial_velocity=pygame.Vector2(-150, -250))
         self.spawn_ball(pygame.Vector2(400, 200), initial_velocity=pygame.Vector2(100, -400))
         
-        # Debug: Print number of physics objects
-        print(f"Physics objects in world: {len(self.physics_world.physics_objects)}")
-        for obj in self.physics_world.physics_objects:
-            if hasattr(obj, 'actor') and obj.actor:
-                print(f"  - {obj.actor.name}: {obj.actor.transform.world_position}")
-        
     def spawn_ball(self, position: pygame.Vector2, initial_velocity: pygame.Vector2 = None):
         """Spawn a new bouncing ball at the given position."""
         self.ball_count += 1
         
-        print(f"Spawning ball {self.ball_count} at position {position}")
-        
         # Create ball actor
         ball = self.create_actor(f"Ball_{self.ball_count}", position)
-        
-        # Debug: Check actor position after creation
-        print(f"Actor created at: {ball.transform.local_position}, world: {ball.transform.world_position}")
         
         # Random ball properties
         radius = random.uniform(10, 25)
@@ -116,10 +112,6 @@ class BouncingBallDemo(Scene):
         ball_physics.elasticity = random.uniform(0.7, 0.95)  # Random bounciness
         
         ball.add_component(ball_physics)
-        
-        # Debug: Check physics body position after component added
-        if ball_physics.body:
-            print(f"Physics body position: {ball_physics.body.position}")
         
         # Set initial velocity if provided
         if initial_velocity and ball_physics.body:
