@@ -1,12 +1,11 @@
 # Wicked Wizard Washdown
 
-A 2D networked game engine built with pygame-ce featuring a complete component-based architecture.
+A 2D game engine built with pygame-ce featuring a complete component-based architecture.
 
 ## Features
 
 - **Entity-Component-System Architecture** - Flexible game object composition with reusable components
 - **Scene Management** - Complete scene system with transitions and state management
-- **Networking** - Built-in client-server networking for multiplayer games
 - **Physics System** - Integrated pymunk physics with collision detection
 - **UI System** - Widget-based user interface with buttons, labels, and controls
 - **Particle System** - Flexible particle effects system

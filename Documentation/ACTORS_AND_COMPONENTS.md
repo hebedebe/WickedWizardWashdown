@@ -479,28 +479,6 @@ if health.is_alive():
     percentage = health.get_health_percentage()
 ```
 
-### NetworkComponent
-
-Synchronizes actors across network connections:
-
-```python
-from engine import NetworkComponent, NetworkOwnership
-
-# Create networked actor
-network_comp = NetworkComponent(
-    owner_id="player1",
-    ownership=NetworkOwnership.CLIENT,
-    sync_transform=True
-)
-
-actor.add_component(network_comp)
-
-# The component automatically handles:
-# - Transform synchronization
-# - Component state synchronization  
-# - Network spawning/destroying
-```
-
 ## Creating Custom Components
 
 ### Basic Custom Component

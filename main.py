@@ -1,9 +1,9 @@
 """
 Wicked Wizard Washdown - Main Entry Point
-A 2D networked game engine demonstration.
+A 2D game engine demonstration.
 """
 
-from engine import Game, NetworkComponent
+from engine import Game
 from game import scenes
 
 
@@ -15,13 +15,6 @@ def main():
     # Add all game scenes
     game.add_scene("main_menu", scenes.MainMenuScene())
     game.add_scene("settings", scenes.SettingsScene())
-    game.add_scene("lobby_select", scenes.LobbySelectScene())
-    game.add_scene("join_lobby", scenes.JoinLobbyScene())
-    game.add_scene("lobby", scenes.LobbyScene())
-    game.add_scene("game", scenes.GameScene())
-    
-    # Configure networking
-    NetworkComponent.set_network_manager(game.network_manager)
 
     # Start with the main menu
     game.load_scene("main_menu")

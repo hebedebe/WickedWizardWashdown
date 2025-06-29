@@ -302,15 +302,6 @@ class ActorFactory:
         player.add_component(HealthComponent(100))
         player.add_component(RigidBodyComponent(mass=1.0, shape_type="box"))
         player.add_component(PlayerController())
-        
-        # Networking (if multiplayer)
-        if player_id:
-            network = NetworkComponent(
-                owner_id=player_id,
-                ownership=NetworkOwnership.CLIENT,
-                sync_transform=True
-            )
-            player.add_component(network)
             
         player.add_tag("player")
         return player

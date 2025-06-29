@@ -166,6 +166,7 @@ class Scene:
         """Called when the scene is resumed (returned to from scene stack)."""
         self.paused = False
 
+
 class SceneManager:
     """
     Utility class for managing multiple scenes with transitions.

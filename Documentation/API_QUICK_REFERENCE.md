@@ -180,17 +180,6 @@ animation.pause()
 animation.resume()
 ```
 
-### NetworkComponent
-Multiplayer synchronization.
-
-```python
-network_comp = NetworkComponent(
-    owner_id="player1",
-    ownership=NetworkOwnership.CLIENT,
-    sync_transform=True
-)
-```
-
 ## Common Patterns
 
 ### Player Setup
@@ -242,7 +231,6 @@ For comprehensive information, see the specialized documentation:
 - **[Actors and Components](ACTORS_AND_COMPONENTS.md)** - Entity-component system
 - **[Physics System](PHYSICS_SYSTEM.md)** - Physics simulation and collision
 - **[Animation System](ANIMATION_SYSTEM.md)** - Sprite animations and tweening
-- **[Networking](NETWORKING.md)** - Multiplayer and synchronization
 - **[Best Practices](BEST_PRACTICES.md)** - Code organization and patterns
 
 ## Asset Management
@@ -276,18 +264,4 @@ label.align_x = 'center'
 
 ui.add_widget(button)
 ui.add_widget(label)
-```
-
-## Networking
-
-```python
-# Server
-network = NetworkManager()
-network.start_server(port=12345)
-
-# Client
-network.connect_to_server("localhost", 12345, "player1")
-
-# Send data
-network.send_game_state({"player_pos": [x, y]})
 ```

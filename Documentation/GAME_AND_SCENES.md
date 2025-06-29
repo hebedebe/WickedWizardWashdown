@@ -49,7 +49,7 @@ current_scene = game.current_scene  # Scene or None
 # Core systems
 input_manager = game.input_manager     # InputManager
 asset_manager = game.asset_manager     # AssetManager  
-network_manager = game.network_manager # NetworkManager
+asset_manager = game.asset_manager # AssetManager
 physics_system = game.physics_system   # PhysicsSystem
 
 # Scene management

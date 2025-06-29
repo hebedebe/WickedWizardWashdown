@@ -45,8 +45,8 @@ class PlayerComponent(Component):
         # Example: Access asset manager
         # asset_mgr = self.game.asset_manager
         
-        # Example: Access network manager
-        # network = self.game.network_manager
+        # Example: Access asset manager
+        # assets = self.game.asset_manager
         
         # Example: Change scenes based on game logic
         if input_mgr.is_key_pressed(pygame.K_m):

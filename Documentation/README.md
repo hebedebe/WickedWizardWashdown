@@ -1,6 +1,6 @@
 # Documentation Index
 
-Welcome to the Wicked Wizard Washdown Engine documentation! This 2D game engine provides a complete component-based architecture for creating networked games.
+Welcome to the Wicked Wizard Washdown Engine documentation! This 2D game engine provides a complete component-based architecture for creating games.
 
 ## Quick Start Guide
 
@@ -18,7 +18,6 @@ New to the engine? Start here:
 - [Game and Scene Management](GAME_AND_SCENES.md) - Main game loop and scene system
 - [Actors and Components](ACTORS_AND_COMPONENTS.md) - Entity-component system
 - [Physics System](PHYSICS_SYSTEM.md) - Physics simulation and collision detection
-- [Networking](NETWORKING.md) - Multiplayer and network synchronization
 - [Animation System](ANIMATION_SYSTEM.md) - Sprite animations and property tweening
 
 ## Specialized Systems

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is the complete API reference for the Wicked Wizard Washdown 2D game engine. The engine follows an Entity-Component-System (ECS) architecture built on pygame-ce with networking, physics, and animation capabilities.
+This is the complete API reference for the Wicked Wizard Washdown 2D game engine. The engine follows an Entity-Component-System (ECS) architecture built on pygame-ce with physics and animation capabilities.
 
 ## Quick Start
 
@@ -62,7 +62,7 @@ game.run()
 - `current_scene` - Currently active scene
 - `input_manager` - Global input manager
 - `asset_manager` - Asset loading and caching
-- `network_manager` - Networking system
+- `asset_manager` - Asset loading and management
 - `physics_system` - Physics simulation system
 
 **Key Methods:**
@@ -451,23 +451,6 @@ if health.is_alive():
 - `is_alive()` - Check if health > 0
 - `get_health_percentage()` - Get health as 0.0-1.0
 
-### NetworkComponent
-Synchronizes actors across network connections. See Network Component Documentation for full details.
-
-```python
-from engine import NetworkComponent, NetworkOwnership
-
-# Create networked actor
-network_comp = NetworkComponent(
-    owner_id="player1",
-    ownership=NetworkOwnership.CLIENT,
-    sync_transform=True
-)
-
-# Add to actor
-actor.add_component(network_comp)
-```
-
 ### Animation Components
 
 #### FileAnimationComponent (Recommended)
@@ -654,32 +637,6 @@ movement = input_mgr.get_movement_vector()
 - `is_action_down(action)` - Check if action is held
 - `is_action_pressed(action)` - Check if just pressed
 - `get_movement_vector()` - Get WASD/arrow movement
-
-## Networking
-
-### NetworkManager
-Handles client-server networking.
-
-```python
-from engine import NetworkManager
-
-network = NetworkManager()
-
-# Server mode
-network.start_server(port=12345)
-
-# Client mode  
-network.connect_to_server("localhost", 12345, "player1")
-
-# Send game state
-network.send_game_state({"player_pos": [x, y]})
-```
-
-**Key Methods:**
-- `start_server(port)` - Start as server
-- `connect_to_server(host, port, client_id)` - Connect as client
-- `send_game_state(data)` - Send state update
-- `is_connected()` - Check connection status
 
 ## Event Handling
 

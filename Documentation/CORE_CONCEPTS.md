@@ -13,7 +13,7 @@ Game
  │   │   ├── Components (behaviors and data)
  │   │   └── Transform (position, rotation, scale)
  │   └── Systems (physics, rendering, etc.)
- └── Managers (input, assets, networking)
+ └── Managers (input, assets)
 ```
 
 ## Core Classes Overview

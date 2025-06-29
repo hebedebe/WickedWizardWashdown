@@ -1,5 +1,5 @@
 """
-Wicked Wizard Washdown - 2D Networked Game Engine
+Wicked Wizard Washdown - 2D Game Engine
 Core engine module providing the main Game class and engine functionality.
 """
 
@@ -11,18 +11,16 @@ from typing import Dict, List, Optional, Callable
 from .scene import Scene
 from .input_manager import InputManager
 from .asset_manager import AssetManager
-from .networking import NetworkManager
 from .actor import Actor, Component, Transform
 from .components import (
     SpriteComponent, PhysicsComponent, InputComponent, 
-    AudioComponent, HealthComponent
+    AudioComponent, HealthComponent, TextComponent
 )
 from .physics import (
     PhysicsWorld, PhysicsSystem, PhysicsBodyComponent,
     RigidBodyComponent, StaticBodyComponent, KinematicBodyComponent,
     PhysicsConstraintComponent
 )
-from .network_component import NetworkComponent, NetworkOwnership
 from .enhanced_animation import FileAnimationComponent, AnimationFrame, AnimationSequence, PropertyAnimation, EasingType, create_animation_template
 
 # Backward compatibility alias
@@ -34,15 +32,14 @@ from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay, Tex
 __all__ = [
     'Game', 'Scene', 'Actor', 'Component', 'Transform',
     'SpriteComponent', 'PhysicsComponent', 'InputComponent', 
-    'AudioComponent', 'AnimationComponent', 'HealthComponent',
+    'AudioComponent', 'AnimationComponent', 'HealthComponent', 'TextComponent',
     'FileAnimationComponent', 'AnimationFrame', 'AnimationSequence', 'PropertyAnimation', 'EasingType', 'create_animation_template',
     'PhysicsWorld', 'PhysicsSystem', 'PhysicsBodyComponent',
     'RigidBodyComponent', 'StaticBodyComponent', 'KinematicBodyComponent',
     'PhysicsConstraintComponent',
-    'NetworkComponent', 'NetworkOwnership',
     'ParticleSystem', 'ParticleEmitter', 'Particle',
     'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay', 'TextInput',
-    'InputManager', 'AssetManager', 'NetworkManager'
+    'InputManager', 'AssetManager'
 ]
 
 class Game:
@@ -89,7 +86,6 @@ class Game:
         self.clock = pygame.time.Clock()
         self.input_manager = InputManager()
         self.asset_manager = AssetManager()
-        self.network_manager = NetworkManager()
         self.physics_system = PhysicsSystem()
         
         # Scene management

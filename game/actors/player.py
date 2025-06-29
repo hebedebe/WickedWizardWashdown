@@ -1,6 +1,5 @@
 from engine import Actor
-from engine import SpriteComponent, NetworkComponent, HealthComponent, RigidBodyComponent, InputComponent
-from engine import NetworkOwnership
+from engine import SpriteComponent, HealthComponent, RigidBodyComponent, InputComponent
 
 from ..components.physics_player_controller import PhysicsPlayerController
 
@@ -28,13 +27,6 @@ class Player(Actor):
             input_comp = InputComponent()
             input_comp.update = self._handle_input
             self.add_component(input_comp)
-
-        # add this component last
-        self.add_component(NetworkComponent(
-            owner_id=player_id,
-            ownership=NetworkOwnership.CLIENT if is_owner else NetworkOwnership.SERVER,
-            sync_transform=True  # Sync transform for player movement
-        ))
         
     def _handle_input(self, dt: float) -> None:
         """Handle player input and pass it to the physics controller."""        
