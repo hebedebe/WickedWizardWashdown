@@ -1,6 +1,6 @@
 from engine import Game, Scene
-from engine.ui import UIManager, Label, Button
-from engine.particles import create_fire_emitter
+from engine.rendering.ui import UIManager, Label, Button
+from engine.rendering.particles import create_fire_emitter
 import pygame
 import random
 import math

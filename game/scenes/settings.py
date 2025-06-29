@@ -1,5 +1,5 @@
 from engine import Game, Scene
-from engine.ui import UIManager, Button, Label, Slider
+from engine.rendering.ui import UIManager, Button, Label, Slider
 import pygame
 
 class SettingsScene(Scene):

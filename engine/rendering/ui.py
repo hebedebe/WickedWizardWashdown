@@ -252,7 +252,7 @@ class Label(Widget):
         # Use default font if none provided
         if font is None:
             try:
-                from . import Game
+                from .. import Game
                 game = Game.get_instance()
                 font = game.asset_manager.get_default_font()
             except:
@@ -340,7 +340,7 @@ class Button(Widget):
         # Use default font if none provided
         if font is None:
             try:
-                from . import Game
+                from .. import Game
                 game = Game.get_instance()
                 font = game.asset_manager.get_default_font()
             except:

@@ -7,33 +7,33 @@ import pygame
 import time
 from typing import Dict, List, Optional, Callable
 
-# Import all engine modules
-from .scene import Scene
-from .input_manager import InputManager
-from .asset_manager import AssetManager
-from .actor import Actor, Component, Transform
+# Import all engine modules - updated for new folder structure
+from .core.scene import Scene
+from .input.input_manager import InputManager
+from .core.asset_manager import AssetManager
+from .core.actor import Actor, Component, Transform
 from .components import (
-    SpriteComponent, InputComponent, 
-    AudioComponent, HealthComponent, TextComponent
+    SpriteComponent, AudioComponent, HealthComponent, TextComponent
 )
+from .input import InputComponent
 # Networking imports
-from .networking import NetworkManager, NetworkMessage, MessageType, NetworkPriority, get_network_manager
-from .network_components import (
+from .networking.networking import NetworkManager, NetworkMessage, MessageType, NetworkPriority, get_network_manager
+from .networking.network_components import (
     NetworkComponent, NetworkSerialization, NetworkedActorManager, PriorityNetworkComponent,
     spawn_network_actor, destroy_network_actor, request_full_sync,
     get_networked_actor_manager
 )
-from .network_utils import (
+from .networking.network_utils import (
     NetworkedSceneManager, PlayerManager, NetworkOptimizer, NetworkDebugger,
     get_networked_scene_manager, get_player_manager, get_network_optimizer,
     get_network_debugger, change_scene_networked
 )
-from .enhanced_animation import FileAnimationComponent, AnimationFrame, AnimationSequence, PropertyAnimation, EasingType, create_animation_template
+from .rendering.enhanced_animation import FileAnimationComponent, AnimationFrame, AnimationSequence, PropertyAnimation, EasingType, create_animation_template
 
 # Backward compatibility alias
 AnimationComponent = FileAnimationComponent
-from .particles import ParticleSystem, ParticleEmitter, Particle
-from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay, TextInput
+from .rendering.particles import ParticleSystem, ParticleEmitter, Particle
+from .rendering.ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay, TextInput
 
 # Export main classes
 __all__ = [

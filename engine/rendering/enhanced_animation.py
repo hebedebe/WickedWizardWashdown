@@ -14,8 +14,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from enum import Enum
 
-from .actor import Component
-from .components import SpriteComponent
+from ..core.actor import Component
+from ..components import SpriteComponent
 
 
 class EasingType(Enum):

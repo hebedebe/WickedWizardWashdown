@@ -1,6 +1,6 @@
 from engine import Game, Scene
-from engine.ui import UIManager, FPSDisplay, Button
-from engine.particles import create_fire_emitter
+from engine.rendering.ui import UIManager, FPSDisplay, Button
+from engine.rendering.particles import create_fire_emitter
 import pygame
 import math
 import time

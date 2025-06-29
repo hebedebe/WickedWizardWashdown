@@ -1,6 +1,6 @@
 from engine import Game, Scene
-from engine.ui import UIManager, Button, Label, TextInput
-from engine.networking import get_network_manager, NetworkPriority, MessageType, NetworkMessage
+from engine.rendering.ui import UIManager, Button, Label, TextInput
+from engine.networking.networking import get_network_manager, NetworkPriority, MessageType, NetworkMessage
 from typing import Dict, Any
 import pygame
 import time
