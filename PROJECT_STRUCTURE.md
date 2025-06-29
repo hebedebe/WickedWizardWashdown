@@ -68,11 +68,17 @@ Demonstration and test implementations:
 - `property_animation_demo.py` - Property animation example
 
 ## Documentation Directory (`Documentation/`)
-API and technical documentation:
-- `API_REFERENCE.md` - Complete API documentation
-- `PHYSICS_SYSTEM_DOCS.md` - Physics system details
-- `NETWORK_COMPONENT_DOCS.md` - Networking documentation
-- `ENHANCED_ANIMATION_DOCS.md` - Animation system documentation
+Comprehensive documentation organized by topic:
+- `README.md` - Documentation index and overview
+- `API_QUICK_REFERENCE.md` - Essential API reference and common patterns
+- `GETTING_STARTED.md` - Installation and setup guide
+- `CORE_CONCEPTS.md` - Engine architecture and concepts
+- `GAME_AND_SCENES.md` - Game loop and scene management
+- `ACTORS_AND_COMPONENTS.md` - Entity-component system details
+- `PHYSICS_SYSTEM.md` - Physics simulation and collision detection
+- `NETWORKING.md` - Multiplayer and network synchronization
+- `ANIMATION_SYSTEM.md` - Sprite animations and property tweening
+- `BEST_PRACTICES.md` - Recommended patterns and code organization
 
 ## Architecture Overview
 

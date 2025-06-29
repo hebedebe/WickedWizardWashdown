@@ -112,10 +112,11 @@ The `examples/` directory contains complete demonstrations of engine features:
 
 ## API Documentation
 
-Detailed API documentation is available in the `Documentation/` directory:
-- **API_REFERENCE.md** - Complete API reference
-- **PHYSICS_SYSTEM_DOCS.md** - Physics system documentation
-- **NETWORK_COMPONENT_DOCS.md** - Networking documentation
+Comprehensive documentation is available in the `Documentation/` directory:
+- **[Documentation Index](Documentation/README.md)** - Complete documentation overview
+- **[API Quick Reference](Documentation/API_QUICK_REFERENCE.md)** - Essential API reference
+- **[Getting Started](Documentation/GETTING_STARTED.md)** - Installation and setup guide
+- **[Best Practices](Documentation/BEST_PRACTICES.md)** - Recommended patterns and approaches
 
 ## Requirements
 
