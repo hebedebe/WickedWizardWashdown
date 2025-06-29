@@ -13,7 +13,7 @@ from .input_manager import InputManager
 from .asset_manager import AssetManager
 from .actor import Actor, Component, Transform
 from .components import (
-    SpriteComponent, PhysicsComponent, InputComponent, 
+    SpriteComponent, InputComponent, 
     AudioComponent, HealthComponent, TextComponent
 )
 # Networking imports
@@ -28,11 +28,6 @@ from .network_utils import (
     get_networked_scene_manager, get_player_manager, get_network_optimizer,
     get_network_debugger, change_scene_networked
 )
-from .physics import (
-    PhysicsWorld, PhysicsSystem, PhysicsBodyComponent,
-    RigidBodyComponent, StaticBodyComponent, KinematicBodyComponent,
-    PhysicsConstraintComponent
-)
 from .enhanced_animation import FileAnimationComponent, AnimationFrame, AnimationSequence, PropertyAnimation, EasingType, create_animation_template
 
 # Backward compatibility alias
@@ -43,12 +38,9 @@ from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay, Tex
 # Export main classes
 __all__ = [
     'Game', 'Scene', 'Actor', 'Component', 'Transform',
-    'SpriteComponent', 'PhysicsComponent', 'InputComponent', 
+    'SpriteComponent', 'InputComponent', 
     'AudioComponent', 'AnimationComponent', 'HealthComponent', 'TextComponent',
     'FileAnimationComponent', 'AnimationFrame', 'AnimationSequence', 'PropertyAnimation', 'EasingType', 'create_animation_template',
-    'PhysicsWorld', 'PhysicsSystem', 'PhysicsBodyComponent',
-    'RigidBodyComponent', 'StaticBodyComponent', 'KinematicBodyComponent',
-    'PhysicsConstraintComponent',
     'NetworkManager', 'NetworkMessage', 'MessageType', 'NetworkPriority', 'get_network_manager',
     'NetworkComponent', 'PriorityNetworkComponent', 'NetworkSerialization', 'NetworkedActorManager',
     'spawn_network_actor', 'destroy_network_actor', 'request_full_sync', 'get_networked_actor_manager',
@@ -104,7 +96,6 @@ class Game:
         self.clock = pygame.time.Clock()
         self.input_manager = InputManager()
         self.asset_manager = AssetManager()
-        self.physics_system = PhysicsSystem()
         
         # Networking system
         self.network_manager = get_network_manager()
@@ -230,13 +221,6 @@ class Game:
             while self.accumulator >= self.fixed_timestep:
                 # Update input manager
                 self.input_manager.update(self.fixed_timestep)
-                
-                # Update physics
-                self.physics_system.update(self.fixed_timestep)
-                
-                # Update physics component transforms
-                if self.current_scene:
-                    self.physics_system.update_physics_components(self.current_scene)
                 
                 # Update current scene
                 if self.current_scene:
