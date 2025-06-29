@@ -18,7 +18,7 @@ from .components import (
     AudioComponent, AnimationComponent, HealthComponent
 )
 from .particles import ParticleSystem, ParticleEmitter, Particle
-from .ui import UIManager, Widget, Panel, Label, Button, Slider
+from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay
 
 # Export main classes
 __all__ = [
@@ -26,7 +26,7 @@ __all__ = [
     'SpriteComponent', 'PhysicsComponent', 'InputComponent', 
     'AudioComponent', 'AnimationComponent', 'HealthComponent',
     'ParticleSystem', 'ParticleEmitter', 'Particle',
-    'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider',
+    'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay',
     'InputManager', 'AssetManager', 'NetworkManager'
 ]
 
