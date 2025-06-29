@@ -239,65 +239,7 @@ class AudioComponent(Component):
         """Update audio component."""
         pass
 
-class AnimationComponent(Component):
-    """
-    Component for sprite animation.
-    """
-    
-    def __init__(self):
-        super().__init__()
-        self.animations: dict = {}
-        self.current_animation: Optional[str] = None
-        self.current_frame = 0
-        self.frame_time = 0.0
-        self.animation_speed = 1.0
-        self.loop = True
-        self.playing = False
-        
-    def add_animation(self, name: str, frames: List[pygame.Surface], frame_duration: float = 0.1) -> None:
-        """Add an animation sequence."""
-        self.animations[name] = {
-            'frames': frames,
-            'frame_duration': frame_duration,
-            'frame_count': len(frames)
-        }
-        
-    def play_animation(self, name: str, loop: bool = True) -> None:
-        """Play an animation."""
-        if name in self.animations:
-            self.current_animation = name
-            self.current_frame = 0
-            self.frame_time = 0.0
-            self.loop = loop
-            self.playing = True
-            
-    def stop_animation(self) -> None:
-        """Stop the current animation."""
-        self.playing = False
-        
-    def update(self, dt: float) -> None:
-        """Update animation."""
-        if not self.playing or not self.current_animation:
-            return
-            
-        animation = self.animations[self.current_animation]
-        self.frame_time += dt * self.animation_speed
-        
-        if self.frame_time >= animation['frame_duration']:
-            self.frame_time = 0.0
-            self.current_frame += 1
-            
-            if self.current_frame >= animation['frame_count']:
-                if self.loop:
-                    self.current_frame = 0
-                else:
-                    self.current_frame = animation['frame_count'] - 1
-                    self.playing = False
-                    
-            # Update sprite component if present
-            sprite = self.actor.get_component(SpriteComponent)
-            if sprite:
-                sprite.set_surface(animation['frames'][self.current_frame])
+
 
 class HealthComponent(Component):
     """

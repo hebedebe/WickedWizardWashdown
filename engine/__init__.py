@@ -15,9 +15,13 @@ from .networking import NetworkManager
 from .actor import Actor, Component, Transform
 from .components import (
     SpriteComponent, PhysicsComponent, InputComponent, 
-    AudioComponent, AnimationComponent, HealthComponent
+    AudioComponent, HealthComponent
 )
 from .network_component import NetworkComponent, NetworkOwnership
+from .enhanced_animation import FileAnimationComponent, AnimationFrame, AnimationSequence, PropertyAnimation, EasingType, create_animation_template
+
+# Backward compatibility alias
+AnimationComponent = FileAnimationComponent
 from .particles import ParticleSystem, ParticleEmitter, Particle
 from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay
 
@@ -26,6 +30,8 @@ __all__ = [
     'Game', 'Scene', 'Actor', 'Component', 'Transform',
     'SpriteComponent', 'PhysicsComponent', 'InputComponent', 
     'AudioComponent', 'AnimationComponent', 'HealthComponent',
+    'FileAnimationComponent', 'AnimationFrame', 'AnimationSequence', 'PropertyAnimation', 'EasingType', 'create_animation_template',
+    'NetworkComponent', 'NetworkOwnership',
     'ParticleSystem', 'ParticleEmitter', 'Particle',
     'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay',
     'InputManager', 'AssetManager', 'NetworkManager'
