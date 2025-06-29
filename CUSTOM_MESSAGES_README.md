@@ -197,3 +197,38 @@ This ensures:
 1. **Message Received** → Queue based on priority level
 2. **Priority Processing** → Process queues based on update rates
 3. **Handler Execution** → Call registered handlers for each message type
+
+### Host Shutdown Handling
+
+When the host leaves the lobby, proper cleanup ensures all clients are notified and disconnected:
+
+```python
+# Host shutdown process
+def shutdown_lobby(self):
+    # 1. Notify all clients with instant priority
+    self.network_manager.send_custom_message(
+        "lobby_shutdown",
+        {"reason": "Host left the lobby"},
+        NetworkPriority.INSTANT,
+        "Server"
+    )
+    
+    # 2. Allow message to be sent
+    time.sleep(0.1)
+    
+    # 3. Disconnect all clients and shutdown server
+    self.network_manager.disconnect()
+
+# Client handling of shutdown
+def on_lobby_shutdown(self, event_data, sender_name, timestamp):
+    reason = event_data.get("reason", "Unknown reason")
+    self.add_chat_message("System", f"Lobby closed: {reason}")
+    self.network_manager.disconnect()
+    self.game.pop_scene()  # Return to multiplayer select
+```
+
+This ensures:
+- **Graceful shutdown** when host leaves
+- **Immediate notification** to all clients with INSTANT priority
+- **Proper cleanup** of network connections
+- **User feedback** explaining why the lobby closed

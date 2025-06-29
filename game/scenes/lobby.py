@@ -86,6 +86,7 @@ class LobbyScene(Scene):
             self.network_manager.register_custom_handler("player_leave", self.on_network_player_left)
             self.network_manager.register_custom_handler("lobby_update", self.on_network_lobby_update)
             self.network_manager.register_custom_handler("lobby_state_request", self.on_lobby_state_request)
+            self.network_manager.register_custom_handler("lobby_shutdown", self.on_lobby_shutdown)
             self.network_manager.register_custom_handler("game_start", self.on_network_game_start)
             
             # Set up client connection/disconnection callbacks
@@ -189,6 +190,24 @@ class LobbyScene(Scene):
                 "Server"
             )
             
+    def on_lobby_shutdown(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
+        """Handle lobby shutdown notification from host."""
+        if not self.is_host:  # Only clients should handle this
+            reason = event_data.get("reason", "Unknown reason")
+            self.add_chat_message("System", f"Lobby closed: {reason}")
+            
+            # Disconnect from the server
+            if self.network_manager:
+                self.network_manager.disconnect()
+            
+            # Go back to the main menu after a short delay
+            import time
+            time.sleep(1.0)  # Give user time to see the message
+            
+            if self.game:
+                # Go back to multiplayer select
+                self.game.pop_scene()
+            
     def on_network_game_start(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
         """Handle game start notification."""
         self.add_chat_message("System", "Host is starting the game!")
@@ -208,6 +227,20 @@ class LobbyScene(Scene):
             # In a real implementation, you'd maintain a client_id -> player_name mapping
             # For now, we'll rely on the player_leave message being sent before disconnect
             print(f"Client {client_id} disconnected from server")
+            
+    def check_network_connection(self):
+        """Check if network connection is still active (for clients)."""
+        if not self.is_host and self.network_manager:
+            if not self.network_manager.is_connected:
+                # Lost connection to host
+                self.add_chat_message("System", "Lost connection to host")
+                
+                # Go back to multiplayer select after a delay
+                import time
+                time.sleep(1.0)
+                
+                if self.game:
+                    self.game.pop_scene()
         
     def create_lobby_ui(self) -> None:
         """Create the lobby UI elements."""
@@ -360,18 +393,44 @@ class LobbyScene(Scene):
         """Handle leave lobby button click."""
         print("Leaving lobby...")
         
-        # Announce leaving via custom message
-        if self.network_manager and self.network_manager.is_connected:
-            self.network_manager.send_custom_message(
-                "player_leave", 
-                {"player_name": self.player_name}, 
-                NetworkPriority.HIGH,
-                self.player_name
-            )
-            self.network_manager.disconnect()
+        if self.is_host:
+            # Host is leaving - shut down the entire lobby
+            self.shutdown_lobby()
+        else:
+            # Client is leaving - announce and disconnect
+            if self.network_manager and self.network_manager.is_connected:
+                self.network_manager.send_custom_message(
+                    "player_leave", 
+                    {"player_name": self.player_name}, 
+                    NetworkPriority.HIGH,
+                    self.player_name
+                )
+                self.network_manager.disconnect()
         
         if self.game:
             self.game.pop_scene()  # Go back to multiplayer select
+            
+    def shutdown_lobby(self):
+        """Shutdown the lobby when host leaves (host only)."""
+        print("Host is shutting down the lobby...")
+        
+        if self.network_manager and self.network_manager.is_connected:
+            # Notify all clients that the lobby is closing
+            self.network_manager.send_custom_message(
+                "lobby_shutdown",
+                {"reason": "Host left the lobby"},
+                NetworkPriority.INSTANT,
+                "Server"
+            )
+            
+            # Give a moment for the message to be sent
+            import time
+            time.sleep(0.1)
+            
+            # Disconnect all clients and shut down server
+            self.network_manager.disconnect()
+            
+        self.add_chat_message("System", "Lobby closed by host")
             
     def simulate_player_join(self, player_name: str) -> None:
         """Simulate a player joining (for demo purposes)."""
@@ -393,6 +452,10 @@ class LobbyScene(Scene):
         # Update network manager for instant chat processing
         if self.network_manager:
             self.network_manager.update()
+        
+        # Check network connection status for clients
+        if not self.is_host:
+            self.check_network_connection()
         
         # Update UI
         if self.ui_manager:
@@ -445,3 +508,31 @@ class LobbyScene(Scene):
                 # Quick start for host
                 if self.game:
                     self.game.load_scene("game")
+                    
+    def on_exit(self) -> None:
+        """Clean up when exiting the lobby scene."""
+        super().on_exit()
+        
+        # If we're still connected, properly disconnect
+        if self.network_manager and self.network_manager.is_connected:
+            if self.is_host:
+                # Host shutting down - notify clients and disconnect
+                self.shutdown_lobby()
+            else:
+                # Client leaving - send leave message if still connected
+                try:
+                    self.network_manager.send_custom_message(
+                        "player_leave",
+                        {"player_name": self.player_name},
+                        NetworkPriority.HIGH,
+                        self.player_name
+                    )
+                except:
+                    pass  # Connection might already be lost
+                
+                self.network_manager.disconnect()
+        
+        # Clear network callbacks to avoid memory leaks
+        if self.network_manager:
+            self.network_manager.on_client_connected = None
+            self.network_manager.on_client_disconnected = None
