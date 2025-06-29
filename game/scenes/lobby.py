@@ -325,7 +325,7 @@ class LobbyScene(Scene):
         for i, player in enumerate(self.players):
             player_label = Label(
                 pygame.Rect(70, 120 + i * 25, 200, 20),
-                f"• {player}",
+                f"> {player}",
                 name=f"player_{i}"
             )
             self.ui_manager.add_widget(player_label)
