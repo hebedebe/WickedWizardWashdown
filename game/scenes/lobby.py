@@ -1,6 +1,6 @@
 from engine import Game, Scene
 from engine.ui import UIManager, Button, Label, TextInput
-from engine.networking import get_network_manager, NetworkPriority
+from engine.networking import get_network_manager, NetworkPriority, MessageType, NetworkMessage
 from typing import Dict, Any
 import pygame
 import time
@@ -34,6 +34,15 @@ class LobbyScene(Scene):
         # In a real implementation, this would be determined by networking
         self.is_host = self.network_manager.is_server if self.network_manager else True
         
+        # Initialize player list with self
+        if self.is_host:
+            # Host adds themselves to the list
+            if self.player_name not in self.players:
+                self.players = [self.player_name]
+        else:
+            # Client starts with empty list, will be populated by lobby_update
+            self.players = []
+        
         # Create lobby UI
         self.create_lobby_ui()
         
@@ -51,6 +60,22 @@ class LobbyScene(Scene):
                     self.add_chat_message("System", "Server started successfully on port 7777.")
         else:
             self.add_chat_message("System", "Waiting for host to start the game...")
+            # Request current lobby state and then announce our join
+            if self.network_manager and self.network_manager.is_connected:
+                # First request the current lobby state
+                self.network_manager.send_custom_message(
+                    "lobby_state_request",
+                    {"player_name": self.player_name},
+                    NetworkPriority.HIGH,
+                    self.player_name
+                )
+                # Then send our join message
+                self.network_manager.send_custom_message(
+                    "player_join",
+                    {"player_name": self.player_name},
+                    NetworkPriority.HIGH,
+                    self.player_name
+                )
             
     def setup_network_callbacks(self):
         """Setup network event callbacks."""
@@ -60,7 +85,12 @@ class LobbyScene(Scene):
             self.network_manager.register_custom_handler("player_join", self.on_network_player_joined)
             self.network_manager.register_custom_handler("player_leave", self.on_network_player_left)
             self.network_manager.register_custom_handler("lobby_update", self.on_network_lobby_update)
+            self.network_manager.register_custom_handler("lobby_state_request", self.on_lobby_state_request)
             self.network_manager.register_custom_handler("game_start", self.on_network_game_start)
+            
+            # Set up client connection/disconnection callbacks
+            self.network_manager.on_client_connected = self.on_client_connected
+            self.network_manager.on_client_disconnected = self.on_client_disconnected
             
     def on_network_chat_message(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
         """Handle incoming network chat messages."""
@@ -71,33 +101,113 @@ class LobbyScene(Scene):
     def on_network_player_joined(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
         """Handle player joining the lobby."""
         player_name = event_data.get("player_name", sender_name)
-        if player_name not in self.players:
-            self.players.append(player_name)
-            self.update_players_list()
-            self.add_chat_message("System", f"{player_name} joined the lobby")
+        
+        # Only the host should manage the authoritative player list
+        if self.is_host:
+            if player_name not in self.players:
+                self.players.append(player_name)
+                self.update_players_list()
+                self.add_chat_message("System", f"{player_name} joined the lobby")
+                
+                # Broadcast updated lobby state to all clients
+                if self.network_manager:
+                    self.network_manager.send_custom_message(
+                        "lobby_update",
+                        {
+                            "players": self.players,
+                            "max_players": self.max_players
+                        },
+                        NetworkPriority.HIGH,
+                        "Server"
+                    )
+        # Clients don't handle player_join directly - they wait for lobby_update from server
             
     def on_network_player_left(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
         """Handle player leaving the lobby."""
         player_name = event_data.get("player_name", sender_name)
-        if player_name in self.players:
-            self.players.remove(player_name)
-            self.update_players_list()
-            self.add_chat_message("System", f"{player_name} left the lobby")
+        
+        # Only the host should manage the authoritative player list
+        if self.is_host:
+            if player_name in self.players:
+                self.players.remove(player_name)
+                self.update_players_list()
+                self.add_chat_message("System", f"{player_name} left the lobby")
+                
+                # Broadcast updated lobby state to all clients
+                if self.network_manager:
+                    self.network_manager.send_custom_message(
+                        "lobby_update",
+                        {
+                            "players": self.players,
+                            "max_players": self.max_players
+                        },
+                        NetworkPriority.HIGH,
+                        "Server"
+                    )
+        # Clients don't handle player_leave directly - they wait for lobby_update from server
             
     def on_network_lobby_update(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
-        """Handle lobby information updates."""
-        # Update lobby settings, player list, etc.
-        if "players" in event_data:
+        """Handle lobby information updates from the server."""
+        # Only process lobby updates from the server
+        if sender_name == "Server" and "players" in event_data:
+            # Store previous player list to detect changes
+            old_players = set(self.players)
+            new_players = set(event_data["players"])
+            
+            # Update the lobby state
             self.players = event_data["players"]
             self.update_players_list()
+            
+            # Show join/leave messages for players who changed (but not for self)
+            if not self.is_host:  # Host already shows these messages when processing join/leave
+                joined_players = new_players - old_players
+                left_players = old_players - new_players
+                
+                for player in joined_players:
+                    if player != self.player_name:  # Don't show join message for ourselves
+                        self.add_chat_message("System", f"{player} joined the lobby")
+                        
+                for player in left_players:
+                    if player != self.player_name:  # Don't show leave message for ourselves
+                        self.add_chat_message("System", f"{player} left the lobby")
+            
         if "max_players" in event_data:
             self.max_players = event_data["max_players"]
+            
+    def on_lobby_state_request(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
+        """Handle lobby state request from a new client."""
+        # Only the host responds to lobby state requests
+        if self.is_host and self.network_manager:
+            # Send current lobby state to the requesting client
+            self.network_manager.send_custom_message(
+                "lobby_update",
+                {
+                    "players": self.players,
+                    "max_players": self.max_players
+                },
+                NetworkPriority.HIGH,
+                "Server"
+            )
             
     def on_network_game_start(self, event_data: Dict[str, Any], sender_name: str, timestamp: float):
         """Handle game start notification."""
         self.add_chat_message("System", "Host is starting the game!")
         if self.game:
             self.game.load_scene("game")
+            
+    def on_client_connected(self, client_id: str):
+        """Handle a new client connecting to the server (server only)."""
+        if self.is_host:
+            # Just log the connection, actual player join is handled by player_join message
+            print(f"Client {client_id} connected to server")
+                    
+    def on_client_disconnected(self, client_id: str):
+        """Handle a client disconnecting from the server (server only)."""
+        if self.is_host:
+            # When a client disconnects, we need to figure out which player left
+            # In a real implementation, you'd maintain a client_id -> player_name mapping
+            # For now, we'll rely on the player_leave message being sent before disconnect
+            print(f"Client {client_id} disconnected from server")
         
     def create_lobby_ui(self) -> None:
         """Create the lobby UI elements."""

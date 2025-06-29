@@ -240,6 +240,10 @@ class NetworkManager:
         self.medium_queue = queue.PriorityQueue()   # For regular updates
         self.low_queue = queue.PriorityQueue()      # For background data
         
+        # Counter for unique priority queue ordering
+        self.message_counter = 0
+        self.counter_lock = threading.Lock()
+        
         # Update rate control per priority
         self.priority_rates = {
             NetworkPriority.INSTANT: 0.0,    # No delay - immediate
@@ -811,7 +815,8 @@ class NetworkManager:
         
         while not target_queue.empty() and processed < batch_size:
             try:
-                _, message = target_queue.get_nowait()
+                # Unpack the tuple: (timestamp, counter, message)
+                _, _, message = target_queue.get_nowait()
                 self._handle_priority_message(message)
                 processed += 1
             except queue.Empty:
@@ -835,9 +840,14 @@ class NetworkManager:
         
         target_queue = queue_map.get(message.priority, self.medium_queue)
         
-        # Use timestamp as priority value (earlier messages processed first)
-        priority_value = message.timestamp
-        target_queue.put((priority_value, message))
+        # Use timestamp as primary priority, counter as tiebreaker to avoid comparison issues
+        with self.counter_lock:
+            counter = self.message_counter
+            self.message_counter += 1
+        
+        # Create tuple: (timestamp, counter, message) - no direct message comparison needed
+        priority_item = (message.timestamp, counter, message)
+        target_queue.put(priority_item)
 
     def update(self):
         """Update network manager with priority-based processing."""

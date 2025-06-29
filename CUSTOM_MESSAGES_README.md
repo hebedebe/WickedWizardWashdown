@@ -163,3 +163,37 @@ class ChatSystem:
 ```
 
 This new system provides the foundation for any type of networked application, from simple chat systems to complex multiplayer games with real-time updates.
+
+## Troubleshooting
+
+### TypeError: '<' not supported between instances of 'NetworkMessage'
+
+If you encounter this error in the priority queue system:
+```
+TypeError: '<' not supported between instances of 'NetworkMessage' and 'NetworkMessage'
+```
+
+This has been fixed by implementing a counter-based tiebreaker system in the priority queues. The system now uses a tuple format `(timestamp, counter, message)` to ensure unique ordering without direct message object comparison.
+
+## Technical Details
+
+### Priority Queue Implementation
+
+The system uses Python's `queue.PriorityQueue` with a special tuple format to handle message ordering:
+
+```python
+# Messages are queued as: (timestamp, unique_counter, message_object)
+priority_item = (message.timestamp, counter, message)
+target_queue.put(priority_item)
+```
+
+This ensures:
+1. **Primary ordering by timestamp** - earlier messages processed first
+2. **Secondary ordering by counter** - breaks ties without object comparison  
+3. **No comparison errors** - NetworkMessage objects are never directly compared
+
+### Message Processing Flow
+
+1. **Message Received** → Queue based on priority level
+2. **Priority Processing** → Process queues based on update rates
+3. **Handler Execution** → Call registered handlers for each message type
