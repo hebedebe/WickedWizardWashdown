@@ -17,6 +17,7 @@ from .components import (
     SpriteComponent, PhysicsComponent, InputComponent, 
     AudioComponent, AnimationComponent, HealthComponent
 )
+from .network_component import NetworkComponent, NetworkOwnership
 from .particles import ParticleSystem, ParticleEmitter, Particle
 from .ui import UIManager, Widget, Panel, Label, Button, Slider, FPSDisplay
 

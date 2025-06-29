@@ -1,4 +1,4 @@
-from engine import Game
+from engine import Game, NetworkComponent
 from game import scenes
 
 
@@ -12,7 +12,8 @@ if __name__ == "__main__":
     game.add_scene("lobby", scenes.LobbyScene())
     game.add_scene("game", scenes.GameScene())
     
-    # Start with the main scene
+    NetworkComponent.set_network_manager(game.network_manager)
+
     game.load_scene("main_menu")
-    
+
     game.run()

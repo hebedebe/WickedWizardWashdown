@@ -20,6 +20,10 @@ class MessageType(Enum):
     PLAYER_INPUT = "player_input"
     CHAT = "chat"
     CUSTOM = "custom"
+    ACTOR_SYNC = "actor_sync"
+    ACTOR_SPAWN = "actor_spawn"
+    ACTOR_DESTROY = "actor_destroy"
+    COMPONENT_SYNC = "component_sync"
 
 class NetworkMessage:
     """
