@@ -10,7 +10,12 @@ class Player(Actor):
     def __init__(self, player_id: str, is_owner: bool = False):
         super().__init__(name="Player")
         
-        self.add_component(SpriteComponent())
+        # Add sprite component with reasonable size
+        sprite = SpriteComponent(
+            color=pygame.Color(255, 255, 255),  # Default white, will be changed later
+            size=pygame.Vector2(32, 48)  # 32x48 pixel player
+        )
+        self.add_component(sprite)
         self.add_component(HealthComponent(max_health=100))
         self.add_component(RigidBodyComponent())
         

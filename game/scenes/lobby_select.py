@@ -69,11 +69,15 @@ class LobbySelectScene(Scene):
     def on_create_lobby_clicked(self, event) -> None:
         """Handle create lobby button click."""
         if self.game and hasattr(self.game, 'network_manager') and self.game.network_manager:
-            # Start the server on the default port (or configurable if you wish)
+            # Start the server with default settings (port 12345, max 4 players)
             port = 12345
-            self.game.network_manager.start_server(port=port)
-            print(f"Lobby server started on port {port}")
-            self.game.load_scene("lobby")
+            max_players = 4
+            success = self.game.network_manager.start_server(port=port, max_players=max_players)
+            if success:
+                print(f"Lobby server started on port {port} (max {max_players} players)")
+                self.game.load_scene("lobby")
+            else:
+                print("Failed to start server")
         else:
             print("Network manager not available, proceeding to lobby for testing")
             if self.game:

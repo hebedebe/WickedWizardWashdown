@@ -25,6 +25,8 @@ class MessageType(Enum):
     ACTOR_DESTROY = "actor_destroy"
     COMPONENT_SYNC = "component_sync"
     SCENE_CHANGE = "scene_change"
+    PLAYER_SPAWN = "player_spawn"
+    PLAYER_DESPAWN = "player_despawn"
 
 
 class NetworkMessage:
@@ -227,8 +229,9 @@ class NetworkServer:
     Network server for hosting multiplayer games.
     """
     
-    def __init__(self, port: int = 12345):
+    def __init__(self, port: int = 12345, max_players: int = 4):
         self.port = port
+        self.max_players = max_players
         self.socket: Optional[socket.socket] = None
         self.running = False
         
@@ -304,6 +307,13 @@ class NetworkServer:
         while self.running:
             try:
                 client_socket, address = self.socket.accept()
+                
+                # Check if we've reached max players
+                if len(self.clients) >= self.max_players:
+                    print(f"Server full ({self.max_players} players), rejecting connection from {address}")
+                    client_socket.close()  # Reject the connection
+                    continue
+                
                 print(f"New connection from {address}")
                 
                 # Generate temporary client ID
@@ -377,6 +387,17 @@ class NetworkServer:
     def disconnect_client(self, client_id: str) -> None:
         """Disconnect a specific client."""
         if client_id in self.clients:
+            print(f"Client {client_id} disconnected")
+            
+            # Send player despawn message if we're tracking this
+            if hasattr(self, '_current_scene') and self._current_scene == 'game':
+                despawn_data = {
+                    'player_id': client_id,
+                    'timestamp': time.time()
+                }
+                message = NetworkMessage(MessageType.PLAYER_DESPAWN, despawn_data)
+                self.broadcast_message(message, exclude=[client_id])
+            
             try:
                 self.clients[client_id].close()
             except:
@@ -405,8 +426,7 @@ class NetworkServer:
         except socket.error as e:
             print(f"Failed to send to client {client_id}: {e}")
             self.disconnect_client(client_id)
-            return False
-            
+            return False                
     def broadcast_message(self, message: NetworkMessage, exclude: List[str] = None) -> None:
         """Send a message to all connected clients."""
         exclude = exclude or []
@@ -414,29 +434,7 @@ class NetworkServer:
         for client_id in list(self.clients.keys()):
             if client_id not in exclude:
                 self.send_to_client(client_id, message)
-                
-    def send_scene_change(self, scene_name: str, data: Dict[str, Any] = None) -> None:
-        """Send scene change message to all clients (server only)."""
-        if self.mode != 'server' or not self.server:
-            print("Warning: send_scene_change can only be called by server")
-            return
-            
-        scene_data = {
-            'scene_name': scene_name,
-            'data': data or {}
-        }
-        message = NetworkMessage(MessageType.SCENE_CHANGE, scene_data)
-        self.server.broadcast_message(message)
-        print(f"Broadcasting scene change to '{scene_name}' to all clients")
-    
-    def add_scene_change_handler(self, handler: Callable) -> None:
-        """Add a handler for scene change messages (client only)."""
-        if self.mode == 'client' and self.client:
-            self.client.add_message_handler(MessageType.SCENE_CHANGE, 
-                                          lambda msg: handler(msg.data))
-        elif self.mode == 'server' and self.server:
-            print("Warning: Scene change handlers are for clients only")
-            
+
     def update(self, dt: float) -> None:
         """Update server and process messages."""
         # Process received messages
@@ -477,12 +475,12 @@ class NetworkManager:
         self.game_state: Dict[str, Any] = {}
         self.state_handlers: Dict[str, Callable] = {}
         
-    def start_server(self, port: int = 12345) -> bool:
+    def start_server(self, port: int = 12345, max_players: int = 4) -> bool:
         """Start as a server."""
         if self.mode is not None:
             self.cleanup()
             
-        self.server = NetworkServer(port)
+        self.server = NetworkServer(port, max_players)
         if self.server.start():
             self.mode = 'server'
             self._setup_server_handlers()
@@ -520,6 +518,10 @@ class NetworkManager:
         if self.game_state:
             state_msg = NetworkMessage(MessageType.GAME_STATE, self.game_state)
             self.server.send_to_client(client_id, state_msg)
+        
+        # If we're in a game scene, spawn a player for the new client
+        if hasattr(self, '_current_scene') and self._current_scene == 'game':
+            self._spawn_player_for_client(client_id)
             
     def _handle_client_state(self, client_id: str, message: NetworkMessage) -> None:
         """Handle game state update from client."""
@@ -547,6 +549,9 @@ class NetworkManager:
     def send_scene_change(self, scene_name: str, extra_data: Dict[str, Any] = None) -> None:
         """Send scene change message to all connected clients (server only)."""
         if self.mode == 'server' and self.server:
+            # Track current scene
+            self.set_current_scene(scene_name)
+            
             data = {'scene': scene_name}
             if extra_data:
                 data.update(extra_data)
@@ -562,7 +567,53 @@ class NetworkManager:
                     handler(message.data['scene'])
             
             self.client.add_message_handler(MessageType.SCENE_CHANGE, scene_change_wrapper)
+    
+    def send_player_spawn(self, player_id: str, spawn_position: tuple) -> None:
+        """Send player spawn message to all clients (server only)."""
+        if self.mode == 'server' and self.server:
+            spawn_data = {
+                'player_id': player_id,
+                'position': spawn_position,
+                'timestamp': time.time()
+            }
+            message = NetworkMessage(MessageType.PLAYER_SPAWN, spawn_data)
+            self.server.broadcast_message(message)
+            print(f"Broadcasted player spawn: {player_id} at {spawn_position}")
+    
+    def send_player_despawn(self, player_id: str) -> None:
+        """Send player despawn message to all clients (server only)."""
+        if self.mode == 'server' and self.server:
+            despawn_data = {
+                'player_id': player_id,
+                'timestamp': time.time()
+            }
+            message = NetworkMessage(MessageType.PLAYER_DESPAWN, despawn_data)
+            self.server.broadcast_message(message)
+            print(f"Broadcasted player despawn: {player_id}")
+    
+    def add_player_spawn_handler(self, handler: Callable[[str, tuple], None]) -> None:
+        """Add a handler for player spawn messages (client only)."""
+        if self.client:
+            def player_spawn_wrapper(message: NetworkMessage) -> None:
+                if message.data and 'player_id' in message.data and 'position' in message.data:
+                    handler(message.data['player_id'], tuple(message.data['position']))
             
+            self.client.add_message_handler(MessageType.PLAYER_SPAWN, player_spawn_wrapper)
+    
+    def add_player_despawn_handler(self, handler: Callable[[str], None]) -> None:
+        """Add a handler for player despawn messages (client only)."""
+        if self.client:
+            def player_despawn_wrapper(message: NetworkMessage) -> None:
+                if message.data and 'player_id' in message.data:
+                    handler(message.data['player_id'])
+            
+            self.client.add_message_handler(MessageType.PLAYER_DESPAWN, player_despawn_wrapper)
+    
+    def _spawn_player_for_client(self, client_id: str) -> None:
+        """Spawn a player for a new client that just joined the game scene."""
+        # This should be implemented by the game logic
+        print(f"Should spawn player for new client: {client_id}")
+        
     def update(self, dt: float) -> None:
         """Update network manager."""
         if self.mode == 'client' and self.client:
@@ -607,3 +658,13 @@ class NetworkManager:
             info['server_address'] = self.client.server_address
             
         return info
+    
+    def set_current_scene(self, scene_name: str) -> None:
+        """Set the current scene name for network state tracking."""
+        self._current_scene = scene_name
+        
+    def get_max_players(self) -> int:
+        """Get the maximum number of players allowed."""
+        if self.mode == 'server' and self.server:
+            return self.server.max_players
+        return 4  # Default fallback
