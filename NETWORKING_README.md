@@ -81,7 +81,7 @@ network_comp.add_to_blacklist("SomeComponent")
 # Use whitelist mode (only sync whitelisted components)
 network_comp.set_sync_mode("whitelist")
 network_comp.add_to_whitelist("SpriteComponent")
-network_comp.add_to_whitelist("PhysicsComponent")
+# Note: PhysicsComponent has been removed from the engine
 ```
 
 ### Player Controllers

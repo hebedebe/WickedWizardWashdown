@@ -1,6 +1,6 @@
 """
 Core components for the game engine.
-Includes rendering, physics, input, and audio components.
+Includes rendering, input, and audio components.
 """
 
 import pygame
@@ -170,129 +170,6 @@ class SpriteComponent(Component):
         # Apply alpha to the surface if needed
         if self.surface and self.alpha != 255:
             self.surface.set_alpha(self.alpha)
-
-class PhysicsComponent(Component):
-    """
-    Simple physics component using pygame.Vector2 for velocity and acceleration.
-    """
-    
-    def __init__(self):
-        super().__init__()
-        self.velocity = pygame.Vector2(0, 0)
-        self.acceleration = pygame.Vector2(0, 0)
-        self.drag = 0.0  # Air resistance
-        self.gravity = pygame.Vector2(0, 0)
-        self.mass = 1.0
-        self.bounce = 0.0  # Bounciness factor (0-1)
-        self.friction = 0.0
-        
-        # Collision
-        self.collider: Optional[pygame.Rect] = None
-        self.is_trigger = False
-        self.collision_layers = []
-        
-    def apply_force(self, force: pygame.Vector2) -> None:
-        """Apply a force to the physics body."""
-        self.acceleration += force / self.mass
-        
-    def apply_impulse(self, impulse: pygame.Vector2) -> None:
-        """Apply an impulse (instant velocity change)."""
-        self.velocity += impulse / self.mass
-        
-    def update(self, dt: float) -> None:
-        """Update physics simulation."""
-        if not self.actor:
-            return
-            
-        # Apply gravity
-        self.acceleration += self.gravity * dt
-        
-        # Apply drag
-        if self.drag > 0:
-            drag_force = self.velocity * -self.drag
-            self.acceleration += drag_force
-            
-        # Update velocity and position
-        self.velocity += self.acceleration * dt
-        self.actor.transform.local_position += self.velocity * dt
-        
-        # Update collider position
-        if self.collider:
-            pos = self.actor.transform.world_position
-            self.collider.center = (int(pos.x), int(pos.y))
-            
-        # Reset acceleration for next frame
-        self.acceleration = pygame.Vector2(0, 0)
-        
-    def check_collision(self, other: 'PhysicsComponent') -> bool:
-        """Check collision with another physics component."""
-        if not self.collider or not other.collider:
-            return False
-        return self.collider.colliderect(other.collider)
-    
-    def serialize_for_network(self) -> dict:
-        """
-        Custom network serialization for PhysicsComponent.
-        Only sends essential physics data, excluding collision objects.
-        """
-        data = {
-            'velocity': [self.velocity.x, self.velocity.y],
-            'acceleration': [self.acceleration.x, self.acceleration.y],
-            'drag': self.drag,
-            'gravity': [self.gravity.x, self.gravity.y],
-            'mass': self.mass,
-            'bounce': self.bounce,
-            'friction': self.friction,
-            'is_trigger': self.is_trigger,
-            'collision_layers': self.collision_layers.copy()
-        }
-        
-        # Include collider bounds if it exists
-        if self.collider:
-            data['collider_bounds'] = [self.collider.x, self.collider.y, 
-                                     self.collider.width, self.collider.height]
-        
-        return data
-    
-    def deserialize_from_network(self, data: dict) -> None:
-        """
-        Custom network deserialization for PhysicsComponent.
-        Reconstructs physics state from network data.
-        """
-        if 'velocity' in data:
-            vel = data['velocity']
-            self.velocity = pygame.Vector2(vel[0], vel[1])
-        
-        if 'acceleration' in data:
-            acc = data['acceleration']
-            self.acceleration = pygame.Vector2(acc[0], acc[1])
-        
-        if 'drag' in data:
-            self.drag = data['drag']
-        
-        if 'gravity' in data:
-            grav = data['gravity']
-            self.gravity = pygame.Vector2(grav[0], grav[1])
-        
-        if 'mass' in data:
-            self.mass = data['mass']
-        
-        if 'bounce' in data:
-            self.bounce = data['bounce']
-        
-        if 'friction' in data:
-            self.friction = data['friction']
-        
-        if 'is_trigger' in data:
-            self.is_trigger = data['is_trigger']
-        
-        if 'collision_layers' in data:
-            self.collision_layers = data['collision_layers'].copy()
-        
-        # Recreate collider if bounds were provided
-        if 'collider_bounds' in data:
-            bounds = data['collider_bounds']
-            self.collider = pygame.Rect(bounds[0], bounds[1], bounds[2], bounds[3])
 
 class InputComponent(Component):
     """

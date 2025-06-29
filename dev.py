@@ -35,8 +35,7 @@ def check_dependencies():
         ('pygame-ce', 'pygame'),
         ('numpy', 'numpy'),
         ('Pillow', 'PIL'),
-        ('PyYAML', 'yaml'),
-        ('pymunk', 'pymunk')
+        ('PyYAML', 'yaml')
     ]
     
     missing_packages = []
