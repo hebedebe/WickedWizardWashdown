@@ -24,6 +24,8 @@ class MessageType(Enum):
     ACTOR_SPAWN = "actor_spawn"
     ACTOR_DESTROY = "actor_destroy"
     COMPONENT_SYNC = "component_sync"
+    SCENE_CHANGE = "scene_change"
+
 
 class NetworkMessage:
     """
@@ -413,6 +415,28 @@ class NetworkServer:
             if client_id not in exclude:
                 self.send_to_client(client_id, message)
                 
+    def send_scene_change(self, scene_name: str, data: Dict[str, Any] = None) -> None:
+        """Send scene change message to all clients (server only)."""
+        if self.mode != 'server' or not self.server:
+            print("Warning: send_scene_change can only be called by server")
+            return
+            
+        scene_data = {
+            'scene_name': scene_name,
+            'data': data or {}
+        }
+        message = NetworkMessage(MessageType.SCENE_CHANGE, scene_data)
+        self.server.broadcast_message(message)
+        print(f"Broadcasting scene change to '{scene_name}' to all clients")
+    
+    def add_scene_change_handler(self, handler: Callable) -> None:
+        """Add a handler for scene change messages (client only)."""
+        if self.mode == 'client' and self.client:
+            self.client.add_message_handler(MessageType.SCENE_CHANGE, 
+                                          lambda msg: handler(msg.data))
+        elif self.mode == 'server' and self.server:
+            print("Warning: Scene change handlers are for clients only")
+            
     def update(self, dt: float) -> None:
         """Update server and process messages."""
         # Process received messages
@@ -519,6 +543,25 @@ class NetworkManager:
             self.client.send_message(message)
         elif self.mode == 'server' and self.server:
             self.server.broadcast_message(message)
+            
+    def send_scene_change(self, scene_name: str, extra_data: Dict[str, Any] = None) -> None:
+        """Send scene change message to all connected clients (server only)."""
+        if self.mode == 'server' and self.server:
+            data = {'scene': scene_name}
+            if extra_data:
+                data.update(extra_data)
+            message = NetworkMessage(MessageType.SCENE_CHANGE, data)
+            self.server.broadcast_message(message)
+            print(f"Broadcasted scene change to: {scene_name}")
+    
+    def add_scene_change_handler(self, handler: Callable[[str], None]) -> None:
+        """Add a handler for scene change messages (client only)."""
+        if self.client:
+            def scene_change_wrapper(message: NetworkMessage) -> None:
+                if message.data and 'scene' in message.data:
+                    handler(message.data['scene'])
+            
+            self.client.add_message_handler(MessageType.SCENE_CHANGE, scene_change_wrapper)
             
     def update(self, dt: float) -> None:
         """Update network manager."""

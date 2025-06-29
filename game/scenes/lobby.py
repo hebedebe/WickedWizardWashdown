@@ -38,6 +38,8 @@ class LobbyScene(Scene):
             else:
                 # For clients, add themselves to the player list
                 self.connected_players = ["You"]
+                # Set up scene change handler for clients
+                self.setup_scene_change_handler()
         else:
             # Fallback for testing without network
             self.is_host = True
@@ -49,6 +51,17 @@ class LobbyScene(Scene):
         self.ui_manager = UIManager(screen_size)
         
         self.create_lobby_ui()
+    
+    def setup_scene_change_handler(self) -> None:
+        """Set up handler for scene change messages from server."""
+        if self.game and self.game.network_manager:
+            self.game.network_manager.add_scene_change_handler(self._handle_scene_change)
+    
+    def _handle_scene_change(self, scene_name: str) -> None:
+        """Handle scene change message from server."""
+        print(f"Received scene change command: {scene_name}")
+        if self.game:
+            self.game.load_scene(scene_name)
         
     def get_local_ip(self) -> str:
         """Get the local IP address."""
@@ -187,8 +200,16 @@ class LobbyScene(Scene):
     def on_start_game_clicked(self, event) -> None:
         """Handle start game button click."""
         if self.game and self.is_host:
-            # TODO: Broadcast game start to all clients
-            print("Starting game for all players...")
+            if hasattr(self.game, 'network_manager') and self.game.network_manager:
+                # Send scene change to all clients
+                game_data = {
+                    'started_by': 'host',
+                    'timestamp': pygame.time.get_ticks()
+                }
+                self.game.network_manager.send_scene_change("game", game_data)
+                print("Starting game for all players...")
+            
+            # Start the game for the host as well
             self.game.load_scene("game")
     
     def on_leave_lobby_clicked(self, event) -> None:
