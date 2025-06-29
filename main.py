@@ -15,6 +15,10 @@ def main():
     # Add all game scenes
     game.add_scene("main_menu", scenes.MainMenuScene())
     game.add_scene("settings", scenes.SettingsScene())
+    game.add_scene("multiplayer_select", scenes.MultiplayerSelectScene())
+    game.add_scene("join_lobby", scenes.JoinLobbyScene())
+    game.add_scene("lobby", scenes.LobbyScene())
+    game.add_scene("game", scenes.GameScene())
 
     # Start with the main menu
     game.load_scene("main_menu")

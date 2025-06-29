@@ -16,6 +16,18 @@ from .components import (
     SpriteComponent, PhysicsComponent, InputComponent, 
     AudioComponent, HealthComponent, TextComponent
 )
+# Networking imports
+from .networking import NetworkManager, NetworkMessage, MessageType, get_network_manager
+from .network_components import (
+    NetworkComponent, NetworkSerialization, NetworkedActorManager,
+    spawn_network_actor, destroy_network_actor, request_full_sync,
+    get_networked_actor_manager
+)
+from .network_utils import (
+    NetworkedSceneManager, PlayerManager, NetworkOptimizer, NetworkDebugger,
+    get_networked_scene_manager, get_player_manager, get_network_optimizer,
+    get_network_debugger, change_scene_networked
+)
 from .physics import (
     PhysicsWorld, PhysicsSystem, PhysicsBodyComponent,
     RigidBodyComponent, StaticBodyComponent, KinematicBodyComponent,
@@ -39,7 +51,10 @@ __all__ = [
     'PhysicsConstraintComponent',
     'ParticleSystem', 'ParticleEmitter', 'Particle',
     'UIManager', 'Widget', 'Panel', 'Label', 'Button', 'Slider', 'FPSDisplay', 'TextInput',
-    'InputManager', 'AssetManager'
+    'InputManager', 'AssetManager',
+    # Networking components
+    'NetworkComponent', 'NetworkManager', 'NetworkMessage', 'MessageType',
+    'spawn_network_actor', 'destroy_network_actor', 'get_network_manager'
 ]
 
 class Game:
@@ -87,6 +102,10 @@ class Game:
         self.input_manager = InputManager()
         self.asset_manager = AssetManager()
         self.physics_system = PhysicsSystem()
+        
+        # Networking system
+        self.network_manager = get_network_manager()
+        self.network_manager.game = self
         
         # Scene management
         self.scenes: Dict[str, Scene] = {}
@@ -219,6 +238,9 @@ class Game:
                 # Update current scene
                 if self.current_scene:
                     self.current_scene.update(self.fixed_timestep)
+                
+                # Update networking
+                self.network_manager.update()
                     
                 self.accumulator -= self.fixed_timestep
                 
@@ -236,4 +258,5 @@ class Game:
             self.clock.tick(self.target_fps)
             
         # Cleanup
+        self.network_manager.disconnect()
         pygame.quit()

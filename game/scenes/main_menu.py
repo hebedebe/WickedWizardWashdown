@@ -84,7 +84,7 @@ class MainMenuScene(Scene):
     def on_play_clicked(self, event) -> None:
         """Handle play button click."""
         if self.game:
-            self.game.push_scene("lobby_select")
+            self.game.push_scene("multiplayer_select")
         
     def on_settings_clicked(self, event) -> None:
         """Handle settings button click."""

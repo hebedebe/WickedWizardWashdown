@@ -99,6 +99,99 @@ class Component(ABC):
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle pygame events."""
         pass
+    
+    def serialize_for_network(self) -> dict:
+        """
+        Serialize this component for network transmission.
+        Default implementation serializes all public attributes (not starting with _).
+        Override this method for custom serialization logic.
+        """
+        data = {}
+        for key, value in self.__dict__.items():
+            if not key.startswith('_') and key not in ('actor',):  # Skip private attributes and actor reference
+                try:
+                    # Convert to serializable format
+                    serialized_value = self._serialize_value_for_network(value)
+                    if serialized_value is not None:
+                        data[key] = serialized_value
+                except:
+                    # Skip attributes that can't be serialized
+                    pass
+        return data
+    
+    def deserialize_from_network(self, data: dict) -> None:
+        """
+        Deserialize component data from network transmission.
+        Default implementation sets all provided attributes.
+        Override this method for custom deserialization logic.
+        """
+        for key, value in data.items():
+            if hasattr(self, key) and not key.startswith('_') and key != 'actor':
+                try:
+                    # Convert from serialized format
+                    deserialized_value = self._deserialize_value_from_network(value)
+                    setattr(self, key, deserialized_value)
+                except:
+                    # Skip attributes that can't be set
+                    pass
+    
+    def _serialize_value_for_network(self, value):
+        """Convert a value to a network-serializable format."""
+        import pygame
+        
+        if value is None:
+            return None
+        elif isinstance(value, (bool, int, float, str)):
+            return value
+        elif isinstance(value, pygame.Vector2):
+            return {'__type__': 'Vector2', 'x': value.x, 'y': value.y}
+        elif isinstance(value, pygame.Color):
+            return {'__type__': 'Color', 'r': value.r, 'g': value.g, 'b': value.b, 'a': value.a}
+        elif isinstance(value, pygame.Rect):
+            return {'__type__': 'Rect', 'x': value.x, 'y': value.y, 'width': value.width, 'height': value.height}
+        elif isinstance(value, (list, tuple)):
+            return [self._serialize_value_for_network(item) for item in value]
+        elif isinstance(value, dict):
+            return {k: self._serialize_value_for_network(v) for k, v in value.items()}
+        elif hasattr(value, '__dict__'):
+            # Try to serialize object with __dict__
+            obj_data = {}
+            for k, v in value.__dict__.items():
+                if not k.startswith('_'):
+                    serialized = self._serialize_value_for_network(v)
+                    if serialized is not None:
+                        obj_data[k] = serialized
+            return obj_data if obj_data else None
+        else:
+            # Check if it's JSON serializable
+            return value if self._is_json_serializable(value) else None
+    
+    def _deserialize_value_from_network(self, value):
+        """Convert a value from network-serialized format."""
+        import pygame
+        
+        if isinstance(value, dict) and '__type__' in value:
+            if value['__type__'] == 'Vector2':
+                return pygame.Vector2(value['x'], value['y'])
+            elif value['__type__'] == 'Color':
+                return pygame.Color(value['r'], value['g'], value['b'], value['a'])
+            elif value['__type__'] == 'Rect':
+                return pygame.Rect(value['x'], value['y'], value['width'], value['height'])
+        elif isinstance(value, list):
+            return [self._deserialize_value_from_network(item) for item in value]
+        elif isinstance(value, dict):
+            return {k: self._deserialize_value_from_network(v) for k, v in value.items()}
+        else:
+            return value
+    
+    def _is_json_serializable(self, value) -> bool:
+        """Check if a value is JSON serializable."""
+        try:
+            import json
+            json.dumps(value)
+            return True
+        except (TypeError, ValueError):
+            return False
 
 class Actor:
     """
