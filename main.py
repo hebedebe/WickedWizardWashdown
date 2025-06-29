@@ -1,5 +1,6 @@
 from engine import Game, Scene, Actor, Component, InputManager, AssetManager, NetworkManager
 from engine.ui import UIManager, FPSDisplay
+from engine.particles import create_fire_emitter
 import pygame
 
 class MainGameScene(Scene):
@@ -10,21 +11,35 @@ class MainGameScene(Scene):
         self.ui_manager = None
         self.fps_display = None
         
+        # Fire particle effect for magical ambiance
+        self.fire_emitter = None
+        
     def on_enter(self) -> None:
         super().on_enter()
         
+        # Set the default font for the application
+        Game.get_instance().asset_manager.set_default_font("alagard", 24)
         
         # Setup UI
         screen_size = pygame.display.get_surface().get_size()
         self.ui_manager = UIManager(screen_size)
         
-        # Create FPS display in top-left corner
+        # Create FPS display - now uses the default font automatically!
         self.fps_display = FPSDisplay(
             pygame.Rect(10, 10, 100, 25),  # x, y, width, height
             name="fps_counter",
             update_interval=0.25  # Update 4 times per second
         )
         self.ui_manager.add_widget(self.fps_display)
+        
+        # Create fire particle effect that follows the mouse
+        self.setup_fire_effects()
+        
+    def setup_fire_effects(self) -> None:
+        """Setup fire particle effect that follows the mouse cursor."""
+        # Start with fire emitter at screen center, it will follow mouse position
+        mouse_pos = pygame.mouse.get_pos()
+        self.fire_emitter = create_fire_emitter(pygame.Vector2(mouse_pos))
         
     def update(self, dt: float) -> None:
         super().update(dt)
@@ -33,24 +48,34 @@ class MainGameScene(Scene):
         if self.ui_manager:
             self.ui_manager.update(dt)
             
+        # Update fire emitter to follow mouse position
+        if self.fire_emitter:
+            mouse_pos = pygame.mouse.get_pos()
+            self.fire_emitter.position = pygame.Vector2(mouse_pos)
+            self.fire_emitter.update(dt)
+            
     def render(self, screen: pygame.Surface) -> None:
         # Clear screen with a nice background
         self.background_color = pygame.Color(20, 30, 40)
         super().render(screen)
         
-        # Add some sample content
-        font = pygame.font.Font(None, 48)
-        title_text = font.render("Wicked Wizard Washdown", True, pygame.Color(255, 255, 255))
+        # Render fire effect first (behind text and UI)
+        if self.fire_emitter:
+            self.fire_emitter.render(screen)
+        
+        # Add some sample content using default font
+        title_font = Game.get_instance().asset_manager.get_default_font(48)
+        title_text = title_font.render("Wicked Wizard Washdown", True, pygame.Color(255, 255, 255))
         title_rect = title_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
         screen.blit(title_text, title_rect)
         
-        # Instructions
-        small_font = pygame.font.Font(None, 24)
-        instructions = small_font.render("Press ESC to quit", True, pygame.Color(200, 200, 200))
+        # Instructions using smaller default font
+        instruction_font = Game.get_instance().asset_manager.get_default_font(18)
+        instructions = instruction_font.render("Press ESC to quit", True, pygame.Color(200, 200, 200))
         inst_rect = instructions.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 60))
         screen.blit(instructions, inst_rect)
         
-        # Render UI (including FPS display)
+        # Render UI on top (including FPS display)
         if self.ui_manager:
             self.ui_manager.render(screen)
             

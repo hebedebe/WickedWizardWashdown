@@ -418,3 +418,206 @@ def create_smoke_emitter(position: pygame.Vector2) -> ParticleEmitter:
     emitter.drag_range = (0.2, 0.5)
     
     return emitter
+
+def create_magical_orb_emitter(position: pygame.Vector2, 
+                              orb_color: pygame.Color = pygame.Color(100, 150, 255)) -> 'ParticleEmitter':
+    """Create a floating magical orb particle emitter."""
+    emitter = ParticleEmitter(position)
+    emitter.emission_rate = 15
+    emitter.max_particles = 30
+    emitter.lifetime_range = (3.0, 5.0)
+    emitter.speed_range = (20, 40)
+    emitter.size_range = (4, 12)
+    emitter.emission_shape = 'circle'
+    emitter.emission_radius = 15
+    
+    def setup_orb_particle(particle: Particle):
+        # Magical blue-purple colors
+        base_colors = [
+            pygame.Color(100, 150, 255),  # Light blue
+            pygame.Color(150, 100, 255),  # Purple
+            pygame.Color(200, 150, 255),  # Light purple
+            pygame.Color(50, 200, 255),   # Cyan
+        ]
+        
+        start_color = random.choice(base_colors)
+        particle.start_color = start_color
+        particle.color = start_color
+        particle.end_color = pygame.Color(start_color.r, start_color.g, start_color.b, 0)
+        
+        # Floating motion
+        angle = random.uniform(0, 2 * math.pi)
+        speed = random.uniform(15, 25)
+        particle.velocity = pygame.Vector2(math.cos(angle) * speed, math.sin(angle) * speed)
+        
+        # Gentle gravity upward (magical floating)
+        particle.gravity = pygame.Vector2(0, -10)
+        particle.drag = 0.5
+        
+        # Rotation
+        particle.angular_velocity = random.uniform(-90, 90)
+        
+        # Size animation
+        particle.start_size = random.uniform(3, 8)
+        particle.end_size = 0
+        
+    emitter.particle_setup = setup_orb_particle
+    return emitter
+
+def create_sparkle_emitter(position: pygame.Vector2) -> 'ParticleEmitter':
+    """Create sparkling magical particles."""
+    emitter = ParticleEmitter(position)
+    emitter.emission_rate = 25
+    emitter.max_particles = 50
+    emitter.lifetime_range = (1.0, 2.5)
+    emitter.speed_range = (30, 80)
+    emitter.size_range = (1, 4)
+    emitter.emission_shape = 'circle'
+    emitter.emission_radius = 20
+    
+    def setup_sparkle_particle(particle: Particle):
+        # Golden sparkle colors
+        sparkle_colors = [
+            pygame.Color(255, 255, 100),  # Gold
+            pygame.Color(255, 200, 100),  # Orange-gold
+            pygame.Color(255, 255, 200),  # Light gold
+            pygame.Color(255, 255, 255),  # White
+        ]
+        
+        start_color = random.choice(sparkle_colors)
+        particle.start_color = start_color
+        particle.color = start_color
+        particle.end_color = pygame.Color(start_color.r, start_color.g, start_color.b, 0)
+        
+        # Random sparkle motion
+        angle = random.uniform(0, 2 * math.pi)
+        speed = random.uniform(20, 60)
+        particle.velocity = pygame.Vector2(math.cos(angle) * speed, math.sin(angle) * speed)
+        
+        # Light gravity
+        particle.gravity = pygame.Vector2(0, 20)
+        particle.drag = 0.8
+        
+        # Twinkling rotation
+        particle.angular_velocity = random.uniform(-180, 180)
+        
+        # Size animation
+        particle.start_size = random.uniform(1, 3)
+        particle.end_size = random.uniform(0, 1)
+        
+    emitter.particle_setup = setup_sparkle_particle
+    return emitter
+
+def create_mystical_energy_emitter(position: pygame.Vector2) -> 'ParticleEmitter':
+    """Create mystical energy swirls."""
+    emitter = ParticleEmitter(position)
+    emitter.emission_rate = 8
+    emitter.max_particles = 20
+    emitter.lifetime_range = (4.0, 6.0)
+    emitter.speed_range = (10, 30)
+    emitter.size_range = (6, 15)
+    emitter.emission_shape = 'circle'
+    emitter.emission_radius = 5
+    
+    def setup_energy_particle(particle: Particle):
+        # Mystical purple/green energy colors
+        energy_colors = [
+            pygame.Color(150, 50, 255),   # Purple
+            pygame.Color(100, 255, 150),  # Green
+            pygame.Color(50, 255, 200),   # Cyan
+            pygame.Color(200, 100, 255),  # Light purple
+        ]
+        
+        start_color = random.choice(energy_colors)
+        particle.start_color = start_color
+        particle.color = start_color
+        particle.end_color = pygame.Color(start_color.r, start_color.g, start_color.b, 0)
+        
+        # Spiral motion
+        particle.user_data['spiral_time'] = 0
+        particle.user_data['spiral_radius'] = random.uniform(20, 60)
+        particle.user_data['spiral_speed'] = random.uniform(0.5, 2.0)
+        particle.user_data['center'] = pygame.Vector2(position)
+        
+        # Initial velocity
+        particle.velocity = pygame.Vector2(0, random.uniform(-20, -40))
+        particle.drag = 0.2
+        
+        # Size animation
+        particle.start_size = random.uniform(4, 10)
+        particle.end_size = 0
+        
+    def update_energy_particle(particle: Particle, dt: float):
+        # Custom spiral motion
+        particle.user_data['spiral_time'] += dt * particle.user_data['spiral_speed']
+        
+        spiral_x = math.cos(particle.user_data['spiral_time']) * particle.user_data['spiral_radius']
+        spiral_y = math.sin(particle.user_data['spiral_time']) * particle.user_data['spiral_radius'] * 0.5
+        
+        center = particle.user_data['center']
+        target_pos = center + pygame.Vector2(spiral_x, spiral_y - particle.age * 30)
+        
+        # Move towards spiral position
+        direction = target_pos - particle.position
+        if direction.length() > 0:
+            particle.velocity += direction.normalize() * 50 * dt
+            
+    emitter.particle_setup = setup_energy_particle
+    emitter.particle_update = update_energy_particle
+    return emitter
+
+def create_floating_runes_emitter(position: pygame.Vector2) -> 'ParticleEmitter':
+    """Create floating magical rune symbols."""
+    emitter = ParticleEmitter(position)
+    emitter.emission_rate = 3
+    emitter.max_particles = 8
+    emitter.lifetime_range = (8.0, 12.0)
+    emitter.speed_range = (5, 15)
+    emitter.size_range = (12, 20)
+    emitter.emission_shape = 'rectangle'
+    emitter.emission_width = 100
+    emitter.emission_height = 50
+    
+    def setup_rune_particle(particle: Particle):
+        # Mystical rune colors
+        rune_colors = [
+            pygame.Color(255, 215, 0),    # Gold
+            pygame.Color(147, 112, 219),  # Medium slate blue
+            pygame.Color(138, 43, 226),   # Blue violet
+            pygame.Color(255, 20, 147),   # Deep pink
+        ]
+        
+        start_color = random.choice(rune_colors)
+        particle.start_color = start_color
+        particle.color = start_color
+        particle.end_color = pygame.Color(start_color.r, start_color.g, start_color.b, 0)
+        
+        # Slow floating motion
+        particle.velocity = pygame.Vector2(random.uniform(-10, 10), random.uniform(-20, -5))
+        particle.gravity = pygame.Vector2(0, -5)  # Float upward
+        particle.drag = 0.3
+        
+        # Slow rotation
+        particle.angular_velocity = random.uniform(-30, 30)
+        
+        # Pulsing size
+        particle.user_data['pulse_time'] = 0
+        particle.user_data['base_size'] = random.uniform(8, 16)
+        particle.start_size = particle.user_data['base_size']
+        particle.end_size = 0
+        
+    def update_rune_particle(particle: Particle, dt: float):
+        # Pulsing effect
+        particle.user_data['pulse_time'] += dt * 2
+        pulse = math.sin(particle.user_data['pulse_time']) * 0.3 + 1.0
+        particle.size = particle.user_data['base_size'] * pulse
+        
+        # Fade out near end of life
+        life_ratio = particle.age / particle.lifetime
+        if life_ratio > 0.7:
+            fade = 1.0 - (life_ratio - 0.7) / 0.3
+            particle.color.a = int(particle.start_color.a * fade)
+            
+    emitter.particle_setup = setup_rune_particle
+    emitter.particle_update = update_rune_particle
+    return emitter

@@ -248,7 +248,17 @@ class Label(Widget):
                  name: str = ""):
         super().__init__(rect, name)
         self.text = text
-        self.font = font or pygame.font.Font(None, 24)
+        
+        # Use default font if none provided
+        if font is None:
+            try:
+                from . import Game
+                game = Game.get_instance()
+                font = game.asset_manager.get_default_font()
+            except:
+                font = pygame.font.Font(None, 24)
+                
+        self.font = font
         self.text_color = text_color or pygame.Color(255, 255, 255)
         self.background_color = background_color or pygame.Color(0, 0, 0, 0)
         
@@ -326,7 +336,17 @@ class Button(Widget):
                  name: str = ""):
         super().__init__(rect, name)
         self.text = text
-        self.font = font or pygame.font.Font(None, 24)
+        
+        # Use default font if none provided
+        if font is None:
+            try:
+                from . import Game
+                game = Game.get_instance()
+                font = game.asset_manager.get_default_font()
+            except:
+                font = pygame.font.Font(None, 24)
+                
+        self.font = font
         
         # State-based colors
         self.colors = {

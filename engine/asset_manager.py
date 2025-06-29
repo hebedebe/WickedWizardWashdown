@@ -27,6 +27,11 @@ class AssetManager:
         self.sound_refs: Dict[str, int] = {}
         self.font_refs: Dict[str, int] = {}
         
+        # Default font settings
+        self.default_font_name: Optional[str] = None
+        self.default_font_size: int = 24
+        self._default_font_cache: Optional[pygame.font.Font] = None
+        
         # Asset directories
         self.image_path = self.base_path / "images"
         self.sound_path = self.base_path / "sounds"
@@ -324,3 +329,30 @@ class AssetManager:
             'fonts': len(self.fonts),
             'data_files': len(self.data)
         }
+    
+    def set_default_font(self, font_name: str, size: int = 24) -> None:
+        """Set the default font for the application."""
+        self.default_font_name = font_name
+        self.default_font_size = size
+        self._default_font_cache = None  # Reset cache
+        
+        # Load the font to ensure it exists
+        self.load_font(font_name, size)
+        
+    def get_default_font(self, size: int = None) -> pygame.font.Font:
+        """Get the default font, optionally with a different size."""
+        if size is None:
+            size = self.default_font_size
+            
+        if self.default_font_name:
+            # Use the set default font
+            if size == self.default_font_size and self._default_font_cache:
+                return self._default_font_cache
+                
+            font = self.load_font(self.default_font_name, size)
+            if font and size == self.default_font_size:
+                self._default_font_cache = font
+            return font or pygame.font.Font(None, size)
+        else:
+            # Fall back to pygame default
+            return pygame.font.Font(None, size)
