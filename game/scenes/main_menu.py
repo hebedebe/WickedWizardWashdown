@@ -81,7 +81,7 @@ class MainMenuScene(Scene):
         
     def on_play_clicked(self, event) -> None:
         """Handle play button click."""
-        print("Play button clicked! (Game not implemented yet)")
+        Game.get_instance().load_scene("game_select")
         
     def on_settings_clicked(self, event) -> None:
         """Handle settings button click."""
