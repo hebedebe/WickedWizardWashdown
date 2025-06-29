@@ -380,7 +380,7 @@ def create_explosion_emitter(position: pygame.Vector2, color: pygame.Color = Non
 def create_fire_emitter(position: pygame.Vector2) -> ParticleEmitter:
     """Create a fire particle effect."""
     emitter = ParticleEmitter(position)
-    emitter.emission_rate = 30
+    emitter.emission_rate = 60
     emitter.max_particles = 100
     
     emitter.lifetime_range = (1.0, 2.0)
