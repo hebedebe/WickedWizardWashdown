@@ -71,10 +71,8 @@ class PhysicsWorld:
                             post_solve: Optional[Callable] = None,
                             separate: Optional[Callable] = None):
         """Add collision handlers between two collision types."""
-        # Note: pymunk 7.0+ uses a different collision system
-        # We'll use the on_collision callback for basic collision detection
-        if hasattr(self.space, 'add_collision_handler'):
-            # Older pymunk API
+        try:
+            # Try pymunk 6.x API first
             handler = self.space.add_collision_handler(collision_type_a, collision_type_b)
             if begin:
                 handler.begin = begin
@@ -84,9 +82,9 @@ class PhysicsWorld:
                 handler.post_solve = post_solve
             if separate:
                 handler.separate = separate
-        else:
-            # New pymunk 7.0+ API - use on_collision callback
-            # Store callbacks for manual handling
+        except AttributeError:
+            # Pymunk 7.0+ API - collision handlers work differently
+            # For now, we'll handle collisions manually in the step function
             pass
             
         # Store for reference
