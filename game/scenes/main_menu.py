@@ -83,7 +83,7 @@ class MainMenuScene(Scene):
         
     def on_play_clicked(self, event) -> None:
         """Handle play button click."""
-        Game.get_instance().load_scene("game_select")
+        Game.get_instance().load_scene("game")
         
     def on_settings_clicked(self, event) -> None:
         """Handle settings button click."""

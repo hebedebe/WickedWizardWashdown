@@ -121,29 +121,16 @@ class PhysicsPlayerController(Component):
             
         # Get current position
         body_pos = self.physics_component.body.position
+        current_velocity = self.physics_component.body.velocity
         
-        # Cast a ray downward to check for ground
-        start_point = (body_pos[0], body_pos[1])
-        end_point = (body_pos[0], body_pos[1] + self.ground_check_distance)
-        
-        # Query physics world for ground
-        physics_world = self.physics_component.physics_world
-        hit_info = physics_world.query_segment(start_point, end_point)
-        
-        # Check if we hit something that counts as ground
-        self.is_grounded = False
-        for hit in hit_info:
-            if hit.shape.collision_type in self.ground_layers:
-                # Check if we're actually touching (not just close)
-                if hit.alpha < 1.0:  # Hit something along the ray
-                    self.is_grounded = True
-                    break
-                    
-        # Alternative: check velocity for more responsive ground detection
-        if self.physics_component.body.velocity[1] >= -10:  # Not falling fast
-            velocity_y = self.physics_component.body.velocity[1]
-            if abs(velocity_y) < 50:  # Nearly stopped vertically
-                self.is_grounded = True
+        # Simple velocity-based ground detection that works reliably
+        # Player is grounded if:
+        # 1. Vertical velocity is small (not falling fast)
+        # 2. Vertical velocity is not negative (not moving upward, prevents ceiling detection)
+        # 3. Not moving too fast vertically
+        self.is_grounded = (abs(current_velocity[1]) < 80 and 
+                           current_velocity[1] >= -20 and 
+                           current_velocity[1] >= 0)
                 
     def _handle_horizontal_movement(self, dt: float) -> None:
         """Handle left/right movement."""
