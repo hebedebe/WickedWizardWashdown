@@ -148,7 +148,12 @@ class Widget(ABC):
         if not self.visible or not self.enabled:
             return False
             
-        # Handle mouse events
+        # Handle children first (front to back)
+        for child in reversed(self.children):
+            if child.handle_event(event):
+                return True
+        
+        # Handle mouse events for this widget only if children didn't handle it
         if event.type == pygame.MOUSEMOTION:
             mouse_pos = pygame.Vector2(event.pos)
             was_inside = self.mouse_inside
@@ -184,11 +189,6 @@ class Widget(ABC):
                         
                     self.emit_event("mouse_up", event)
                     return True
-                    
-        # Handle children (front to back)
-        for child in reversed(self.children):
-            if child.handle_event(event):
-                return True
                 
         return False
         
