@@ -72,7 +72,7 @@ class Component(ABC):
     @property
     def game(self):
         """Get the game instance. Provides easy access to game systems from any component."""
-        from . import Game
+        from .. import Game
         return Game.get_instance()
         
     def on_added(self, actor: 'Actor') -> None:
@@ -224,7 +224,7 @@ class Actor:
     @property
     def game(self):
         """Get the game instance. Provides easy access to game systems from any actor."""
-        from . import Game
+        from .. import Game
         return Game.get_instance()
         
     def add_child(self, child: 'Actor') -> None:
