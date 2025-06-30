@@ -4,10 +4,9 @@ from typing import Dict, List, Optional, Callable
 from math import sin, cos, radians, degrees
 
 from .actor.actor import Actor
-from .component.component import Component
-from .component.builtin import *
+from .component import *
 from .input.inputManager import InputManager
-from .networking.networkManager import NetworkManager
+from .networking import *
 from .resources.assetManager import AssetManager
 from .scene.scene import Scene
 from .ui import *
