@@ -7,6 +7,7 @@ import os
 import json
 from typing import Dict, Optional, Any, List
 from pathlib import Path
+from engine.logger import Logger, LogType
 
 class AssetManager:
     """
@@ -79,6 +80,7 @@ class AssetManager:
         image_path = self._findAssetFile(self.imagePath, name, self.imageFormats)
         if not image_path:
             print(f"Could not find image: {name}")
+            Logger.warning(f"Could not find image: {name}")
             return None
             
         try:
@@ -94,6 +96,7 @@ class AssetManager:
             
         except pygame.error as e:
             print(f"Could not load image {name}: {e}")
+            Logger.error(f"Could not load image {name}: {e}")
             return None
             
     def loadSound(self, name: str) -> Optional[pygame.mixer.Sound]:
@@ -105,6 +108,7 @@ class AssetManager:
         sound_path = self._findAssetFile(self.soundPath, name, self.soundFormats)
         if not sound_path:
             print(f"Could not find sound: {name}")
+            Logger.warning(f"Could not find sound: {name}")
             return None
             
         try:
@@ -115,6 +119,7 @@ class AssetManager:
             
         except pygame.error as e:
             print(f"Could not load sound {name}: {e}")
+            Logger.error(f"Could not load sound {name}: {e}")
             return None
             
     def loadFont(self, name: str, size: int = 24) -> Optional[pygame.font.Font]:
@@ -136,6 +141,7 @@ class AssetManager:
         font_path = self._findAssetFile(self.fontPath, name, self.fontFormats)
         if not font_path:
             print(f"Could not find font: {name}, using default")
+            Logger.warning(f"Could not find font: {name}, using default")
             font = pygame.font.Font(None, size)
             self.fonts[font_key] = font
             self.fontRefs[font_key] = 1
@@ -149,6 +155,7 @@ class AssetManager:
             
         except pygame.error as e:
             print(f"Could not load font {name}: {e}, using default")
+            Logger.error(f"Could not load font {name}: {e}, using default")
             font = pygame.font.Font(None, size)
             self.fonts[font_key] = font
             self.fontRefs[font_key] = 1
@@ -165,6 +172,7 @@ class AssetManager:
             
         if not data_path.exists():
             print(f"Could not find data file: {name}")
+            Logger.warning(f"Could not find data file: {name}")
             return None
             
         try:
@@ -175,6 +183,7 @@ class AssetManager:
             
         except (json.JSONDecodeError, IOError) as e:
             print(f"Could not load data {name}: {e}")
+            Logger.error(f"Could not load data {name}: {e}")
             return None
             
     def _findAssetFile(self, base_path: Path, name: str, extensions: set) -> Optional[Path]:

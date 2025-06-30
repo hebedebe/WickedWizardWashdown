@@ -3,9 +3,11 @@ from engine import *
 def main():
     game = Game(800, 600, "Wicked Wizard Washdown")
 
-    scene = Scene("Test Scene")
-    game.addScene(scene)
-    game.loadScene(scene)
+    Logger.log("Initializing game engine...", LogType.INFO)
+
+    scene = Scene()
+    game.addScene("test", scene)
+    game.loadScene("test")
 
     ### add actors here ###
 
