@@ -1,8 +1,6 @@
-from .transform import Transform
 
 class Actor:
     def __init__(self, name: str = "Actor"):
-        self.transform = Transform()
         self.name = name
         self.tags = set()  # Using a set for unique tags
         self.components = []
