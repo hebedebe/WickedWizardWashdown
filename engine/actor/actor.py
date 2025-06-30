@@ -91,6 +91,13 @@ class Actor:
         """
         from ..component.component import Component
         actor = Actor()
+        
+        # Deserialize basic actor properties
+        actor.name = data.get("name", "Actor")
+        actor.tags = set(data.get("tags", []))
+        actor.transform.deserialize(data.get("transform", {}))
+        
+        # Deserialize and add components
         for component_data in data.get("components", []):
             component = Component.createFromData(component_data)
             actor.addComponent(component)
