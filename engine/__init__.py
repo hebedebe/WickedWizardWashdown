@@ -10,6 +10,7 @@ from .networking import *
 from .resources.assetManager import AssetManager
 from .scene.scene import Scene
 from .ui import *
+from .logger import Logger, LogType
 
 
 serialization_registry = {}

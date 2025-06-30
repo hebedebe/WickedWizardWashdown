@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Callable, Tuple
 
 from ..actor.actor import Actor
 from ..ui.uiManager import UIManager
+from engine.logger import Logger, LogType
 
 class Scene:
     def __init__(self):
@@ -25,6 +26,7 @@ class Scene:
         """Add an actor to the scene."""
         if actor.name in self.actor_lookup:
             print(f"WARN: Actor with name '{actor.name}' already exists in the scene.")
+            Logger.warning(f"Actor with name '{actor.name}' already exists in the scene.")
         
         self.actors.append(actor)
         self.actor_lookup[actor.name] = actor

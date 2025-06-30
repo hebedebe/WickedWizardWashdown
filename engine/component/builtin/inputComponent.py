@@ -1,6 +1,7 @@
 import pygame
 from typing import Callable, Dict, Optional, Set, Any
 from engine.component.component import Component
+from engine.logger import Logger, LogType
 
 class InputComponent(Component):
     """
@@ -135,6 +136,7 @@ class InputComponent(Component):
                             handled = True
                         except Exception as e:
                             print(f"Error in key binding for key {key}: {e}")
+                            Logger.error(f"Error in key binding for key {key}: {e}")
                             
         elif event.type == pygame.KEYUP:
             self._pressed_keys.discard(key)
@@ -147,6 +149,7 @@ class InputComponent(Component):
                             handled = True
                         except Exception as e:
                             print(f"Error in key binding for key {key}: {e}")
+                            Logger.error(f"Error in key binding for key {key}: {e}")
                             
         return handled and self.consume_events
 
@@ -174,6 +177,7 @@ class InputComponent(Component):
                             handled = True
                         except Exception as e:
                             print(f"Error in mouse binding for button {button}: {e}")
+                            Logger.error(f"Error in mouse binding for button {button}: {e}")
                             
         elif event.type == pygame.MOUSEBUTTONUP:
             button = event.button
@@ -187,6 +191,7 @@ class InputComponent(Component):
                             handled = True
                         except Exception as e:
                             print(f"Error in mouse binding for button {button}: {e}")
+                            Logger.error(f"Error in mouse binding for button {button}: {e}")
                             
         return handled and self.consume_events
         
