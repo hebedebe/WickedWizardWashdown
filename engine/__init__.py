@@ -13,6 +13,28 @@ from .scene.scene import Scene
 from .ui import *
 
 
+serialization_registry = {}
+
+def register_serializer(type_, to_json, from_json):
+    serialization_registry[type_] = (to_json, from_json)
+
+### Default Serializers ###
+
+register_serializer(
+    pygame.Vector2,
+    lambda v: [v.x, v.y],
+    lambda data: pygame.Vector2(*data)
+)
+
+register_serializer(
+    pygame.Rect,
+    lambda r: [r.x, r.y, r.width, r.height],
+    lambda data: pygame.Rect(*data)
+)
+
+
+### Game Engine Class ###
+
 class Game:
     _instance = None
     _initialized = False

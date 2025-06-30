@@ -19,9 +19,12 @@ class UpdateCircleComponent(Component):
         super().__init__()
         self.amplitude = amplitude
 
+    def start(self):
+        self.targetComponent = self.actor.getComponent(DrawCircleComponent)
+
     def update(self, dt):
         self.actor.transform.position.x = self.amplitude * sin(time.time() * 2) + 400
-        self.actor.getComponent(DrawCircleComponent).radius = self.amplitude * (cos(time.time() * 2) + 1) + 50
+        self.targetComponent.radius = self.amplitude * (cos(time.time() * 2) + 1) + 50
 
 def main():
     print("Starting Wicked Wizard Washdown...")
@@ -39,6 +42,17 @@ def main():
     testScene.addActor(testActor)
 
     testScene.uiManager.addWidget(FPSDisplay())
+
+    print("Testing serialization:")
+    print(testActor.serialize())
+
+    print("testing creating a new actor with serialized data")
+    serialized_data = testActor.serialize()
+    newActor = Actor.createFromSerializedData(serialized_data)
+    print("New Actor Serialized Data:")
+    print(newActor.serialize())
+    newActor.getComponent(DrawCircleComponent).color = (255, 0, 255)  # Change color to magenta
+    testScene.addActor(newActor)
 
     game.run()
 
