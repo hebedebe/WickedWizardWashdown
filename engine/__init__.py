@@ -99,6 +99,10 @@ class Game:
         # Events
         self.eventHandlers: Dict[int, List[Callable]] = {}
 
+        # Settings
+        if not hasattr(self, 'settings'):
+            self.settings = {}
+
         # Mark as initialized
         Game._initialized = True
 
