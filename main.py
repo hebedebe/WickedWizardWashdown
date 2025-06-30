@@ -51,6 +51,7 @@ def main():
     newActor = Actor.createFromSerializedData(serialized_data)
     print("New Actor Serialized Data:")
     print(newActor.serialize())
+    # newActor.name = "ClonedActor"  # Give it a unique name
     newActor.getComponent(DrawCircleComponent).color = (255, 0, 255)  # Change color to magenta
     testScene.addActor(newActor)
 

@@ -66,23 +66,41 @@ class Component(ABC):
 
     def serialize(self):
         serialized_data = {
-            "module": self.__module__,
-            "type": self.__class__.__name__,
-        }
+            "module": self.__class__.__module__, 
+            "type": self.__class__.__name__
+            }
+
+        exclude = getattr(self, "__serialization_exclude__", [])
+        include = getattr(self, "__serialization_include__", None)
+        custom = getattr(self, "__serialization_custom__", {})
 
         for key, value in self.__dict__.items():
-            if key == "actor":  # Skip unserializable references
+            if key == "actor" or key in exclude:
                 continue
-            serialized_data[key] = self._serialize_value(value)
+            if include is not None and key not in include:
+                continue
+            if key in custom:
+                to_json, _ = custom[key]
+                serialized_data[key] = {"__custom__": True, "value": to_json(value)}
+            else:
+                serialized_data[key] = self._serialize_value(value)
 
         return serialized_data
 
     def deserialize(self, data):
+        custom = getattr(self, "__serialization_custom__", {})
+
         for key, value in data.items():
-            if key in ("type", "module"):
+            if key in ["type", "module"]:
                 continue
-            setattr(self, key, self._deserialize_value(value))
+            if isinstance(value, dict) and value.get("__custom__"):
+                _, from_json = custom.get(key, (None, None))
+                if from_json:
+                    setattr(self, key, from_json(value["value"]))
+            else:
+                setattr(self, key, self._deserialize_value(value))
         return self
+
     
     @staticmethod
     def createFromData(data: dict):

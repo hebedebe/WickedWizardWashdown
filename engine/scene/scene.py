@@ -24,7 +24,7 @@ class Scene:
     def addActor(self, actor: Actor):
         """Add an actor to the scene."""
         if actor.name in self.actor_lookup:
-            raise ValueError(f"Actor with name '{actor.name}' already exists in the scene.")
+            print(f"WARN: Actor with name '{actor.name}' already exists in the scene.")
         
         self.actors.append(actor)
         self.actor_lookup[actor.name] = actor
