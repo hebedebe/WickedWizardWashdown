@@ -1,14 +1,18 @@
-"""
-Wicked Wizard Washdown - Main Entry Point
-A 2D game engine demonstration.
-"""
-
 from engine import *
 
 def main():
-    print("Starting Wicked Wizard Washdown...")
-    
     game = Game(800, 600, "Wicked Wizard Washdown")
+
+    scene = Scene("Test Scene")
+    game.addScene(scene)
+    game.loadScene(scene)
+
+    ### add actors here ###
+
+    actor = Actor("Test Actor")
+    scene.addActor(actor)
+
+    #######################
 
     game.run()
 
