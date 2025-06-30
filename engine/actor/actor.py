@@ -6,6 +6,10 @@ class Actor:
         self.name = name
         self.tags = set()  # Using a set for unique tags
         self.components = []
+        
+        # Parent-child relationships
+        self.parent: 'Actor' = None
+        self.children: list['Actor'] = []
 
     def setName(self, name: str) -> None:
         """Set the name of the actor."""
@@ -37,6 +41,36 @@ class Actor:
     def removeTag(self, tag: str) -> None:
         """Remove a tag from the actor."""
         self.tags.discard(tag)
+
+    def setParent(self, parent: 'Actor') -> None:
+        """Set this actor's parent."""
+        # Remove from old parent
+        if self.parent and self in self.parent.children:
+            self.parent.children.remove(self)
+            
+        # Set new parent
+        self.parent = parent
+        
+        # Add to new parent
+        if parent and self not in parent.children:
+            parent.children.append(self)
+            
+    def addChild(self, child: 'Actor') -> None:
+        """Add a child actor."""
+        child.setParent(self)
+        
+    def removeChild(self, child: 'Actor') -> None:
+        """Remove a child actor."""
+        if child in self.children:
+            child.setParent(None)
+            
+    def getParent(self) -> 'Actor':
+        """Get this actor's parent."""
+        return self.parent
+        
+    def getChildren(self) -> list['Actor']:
+        """Get this actor's children."""
+        return self.children.copy()  # Return copy to prevent external modification
 
     def handleUpdate(self, dt: float) -> None:
         """Handle the update logic for the actor."""
@@ -72,7 +106,10 @@ class Actor:
             "name": self.name,
             "tags": list(self.tags),
             "transform": self.transform.serialize(),
-            "components": [component.serialize() for component in self.components]
+            "components": [component.serialize() for component in self.components],
+            # Serialize child relationships using names to avoid circular dependencies
+            "parent_name": self.parent.name if self.parent else None,
+            "children_names": [child.name for child in self.children]
         }
         return data
 
@@ -83,6 +120,10 @@ class Actor:
         self.tags = set(data.get("tags", []))
         self.transform.deserialize(data.get("transform", {}))
         self.components = [Component.deserialize(compData) for compData in data.get("components", [])]
+        # Note: Parent/child relationships need to be re-established after all actors are deserialized
+        # Store the relationship data for later processing
+        self._serialized_parent_name = data.get("parent_name")
+        self._serialized_children_names = data.get("children_names", [])
 
     @staticmethod
     def createFromSerializedData(data: dict):
@@ -97,11 +138,44 @@ class Actor:
         actor.tags = set(data.get("tags", []))
         actor.transform.deserialize(data.get("transform", {}))
         
+        # Store relationship data for later processing
+        actor._serialized_parent_name = data.get("parent_name")
+        actor._serialized_children_names = data.get("children_names", [])
+        
         # Deserialize and add components
         for component_data in data.get("components", []):
             component = Component.createFromData(component_data)
             actor.addComponent(component)
         return actor
+
+    @staticmethod
+    def establishRelationshipsFromSerialization(actors: list['Actor']) -> None:
+        """
+        Re-establish parent-child relationships after deserializing a list of actors.
+        This should be called after all actors have been deserialized.
+        """
+        # Create a name-to-actor mapping for quick lookup
+        actor_map = {actor.name: actor for actor in actors}
+        
+        # Re-establish relationships
+        for actor in actors:
+            if hasattr(actor, '_serialized_parent_name') and actor._serialized_parent_name:
+                parent = actor_map.get(actor._serialized_parent_name)
+                if parent:
+                    actor.setParent(parent)
+                    
+            # Clean up temporary serialization data
+            if hasattr(actor, '_serialized_parent_name'):
+                delattr(actor, '_serialized_parent_name')
+            if hasattr(actor, '_serialized_children_names'):
+                delattr(actor, '_serialized_children_names')
+                
+    def clearSerializationData(self) -> None:
+        """Clear temporary serialization data."""
+        if hasattr(self, '_serialized_parent_name'):
+            delattr(self, '_serialized_parent_name')
+        if hasattr(self, '_serialized_children_names'):
+            delattr(self, '_serialized_children_names')
 
     def handleEvent(self, event) -> bool:
         """Handle an event and forward to components."""

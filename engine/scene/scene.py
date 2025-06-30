@@ -99,3 +99,42 @@ class Scene:
                 if hasattr(actor, 'handleEvent'):
                     if actor.handleEvent(event):
                         break  # Stop if an actor handled the event
+
+    def serialize(self) -> dict:
+        """Serialize the scene to a dictionary."""
+        return {
+            "actors": [actor.serialize() for actor in self.actors],
+            "active": self.active,
+            "paused": self.paused
+        }
+    
+    def deserialize(self, data: dict) -> None:
+        """Deserialize the scene from a dictionary."""
+        # Clear current actors
+        self.actors.clear()
+        self.actor_lookup.clear() 
+        self.actors_by_tag.clear()
+        
+        # Deserialize actors
+        new_actors = []
+        for actor_data in data.get("actors", []):
+            actor = Actor.createFromSerializedData(actor_data)
+            new_actors.append(actor)
+        
+        # Re-establish parent-child relationships
+        Actor.establishRelationshipsFromSerialization(new_actors)
+        
+        # Add actors to scene
+        for actor in new_actors:
+            self.addActor(actor)
+        
+        # Restore scene state
+        self.active = data.get("active", True)
+        self.paused = data.get("paused", False)
+    
+    @staticmethod
+    def createFromSerializedData(data: dict) -> 'Scene':
+        """Create a scene from serialized data."""
+        scene = Scene()
+        scene.deserialize(data)
+        return scene

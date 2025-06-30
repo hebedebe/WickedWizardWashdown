@@ -5,16 +5,12 @@ from engine.component.component import Component
 class TransformComponent(Component):
     """
     Advanced transform component that extends the basic actor transform.
-    Provides additional transformation features like parent-child relationships,
-    local vs world coordinates, and smooth interpolation.
+    Provides additional transformation features using actor parent-child relationships,
+    local vs world coordinates, and transform constraints.
     """
     
     def __init__(self):
         super().__init__()
-        
-        # Parent-child transform relationships
-        self.parent_transform: Optional['TransformComponent'] = None
-        self.children_transforms: list = []
         
         # Local transform (relative to parent)
         self.local_position: pygame.Vector2 = pygame.Vector2(0, 0)
@@ -27,28 +23,12 @@ class TransformComponent(Component):
         self.lock_rotation: bool = False
         self.lock_scale: bool = False
         
-    def set_parent(self, parent_transform: Optional['TransformComponent']) -> None:
-        """Set this transform's parent."""
-        # Remove from old parent
-        if self.parent_transform and self in self.parent_transform.children_transforms:
-            self.parent_transform.children_transforms.remove(self)
-            
-        # Set new parent
-        self.parent_transform = parent_transform
+    def _get_parent_transform_component(self) -> Optional['TransformComponent']:
+        """Get the parent actor's TransformComponent if it exists."""
+        if not self.actor or not self.actor.parent:
+            return None
+        return self.actor.parent.getComponent(TransformComponent)
         
-        # Add to new parent
-        if parent_transform and self not in parent_transform.children_transforms:
-            parent_transform.children_transforms.append(self)
-            
-    def add_child(self, child_transform: 'TransformComponent') -> None:
-        """Add a child transform."""
-        child_transform.set_parent(self)
-        
-    def remove_child(self, child_transform: 'TransformComponent') -> None:
-        """Remove a child transform."""
-        if child_transform in self.children_transforms:
-            child_transform.set_parent(None)
-            
     def get_world_position(self) -> pygame.Vector2:
         """Get the world position considering parent transforms."""
         if not self.actor:
@@ -56,15 +36,13 @@ class TransformComponent(Component):
             
         world_pos = self.actor.transform.position.copy()
         
-        if self.parent_transform:
-            parent_world = self.parent_transform.get_world_position()
+        parent_transform = self._get_parent_transform_component()
+        if parent_transform:
+            parent_world = parent_transform.get_world_position()
             # Apply parent rotation to local position
-            if self.parent_transform.actor:
-                parent_rotation = self.parent_transform.actor.transform.rotation
-                rotated_local = self.local_position.rotate(parent_rotation)
-                world_pos = parent_world + rotated_local
-            else:
-                world_pos = parent_world + self.local_position
+            parent_rotation = parent_transform.get_world_rotation()
+            rotated_local = self.local_position.rotate(parent_rotation)
+            world_pos = parent_world + rotated_local
         else:
             world_pos += self.local_position
             
@@ -77,8 +55,9 @@ class TransformComponent(Component):
             
         world_rot = self.actor.transform.rotation + self.local_rotation
         
-        if self.parent_transform:
-            parent_rot = self.parent_transform.get_world_rotation()
+        parent_transform = self._get_parent_transform_component()
+        if parent_transform:
+            parent_rot = parent_transform.get_world_rotation()
             world_rot += parent_rot
             
         return world_rot
@@ -93,8 +72,9 @@ class TransformComponent(Component):
             self.actor.transform.scale.y * self.local_scale.y
         )
         
-        if self.parent_transform:
-            parent_scale = self.parent_transform.get_world_scale()
+        parent_transform = self._get_parent_transform_component()
+        if parent_transform:
+            parent_scale = parent_transform.get_world_scale()
             world_scale.x *= parent_scale.x
             world_scale.y *= parent_scale.y
             
@@ -105,8 +85,9 @@ class TransformComponent(Component):
         if not self.actor:
             return
             
-        if self.parent_transform:
-            parent_world = self.parent_transform.get_world_position()
+        parent_transform = self._get_parent_transform_component()
+        if parent_transform:
+            parent_world = parent_transform.get_world_position()
             self.local_position = world_pos - parent_world
         else:
             self.actor.transform.position = world_pos
@@ -170,12 +151,6 @@ class TransformComponent(Component):
     def serialize(self) -> dict:
         """Serialize the transform component data."""
         data = super().serialize()
-        
-        # Don't serialize parent/child references as they would create circular dependencies
-        # These should be re-established by the scene/actor management system
-        if 'parent_transform' in data:
-            del data['parent_transform']
-        if 'children_transforms' in data:
-            del data['children_transforms']
-            
+        # Parent-child relationships are now handled by Actor serialization
+        # so no need to exclude anything here
         return data
