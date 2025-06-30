@@ -15,10 +15,10 @@ LOG_COLORS = {
     LogType.ERROR: '\033[31m',    # Red
 }
 LOG_SYMBOLS = {
-    LogType.DEBUG: '🐞',
-    LogType.INFO: 'ℹ️',
-    LogType.WARNING: '⚠️',
-    LogType.ERROR: '❌',
+    LogType.DEBUG: '',
+    LogType.INFO: 'ℹ',
+    LogType.WARNING: '',
+    LogType.ERROR: '',
 }
 RESET_COLOR = '\033[0m'
 

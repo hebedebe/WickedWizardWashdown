@@ -3,7 +3,7 @@ from engine import *
 def main():
     game = Game(800, 600, "Wicked Wizard Washdown")
 
-    Logger.log("Initializing game engine...", LogType.INFO)
+    Logger.debug("Initializing game engine...")
 
     scene = Scene()
     game.addScene("test", scene)
