@@ -102,3 +102,12 @@ class Actor:
             component = Component.createFromData(component_data)
             actor.addComponent(component)
         return actor
+
+    def handleEvent(self, event) -> bool:
+        """Handle an event and forward to components."""
+        # Forward event to all components that can handle events
+        for component in self.components:
+            if component.enabled and hasattr(component, 'handle_event'):
+                if component.handle_event(event):
+                    return True  # Event was handled
+        return False
