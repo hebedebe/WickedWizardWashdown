@@ -90,4 +90,12 @@ class Scene:
 
     def handleEvent(self, event: pygame.event.Event):
         """Handle an event."""
-        self.uiManager.handleEvent(event)
+        # First let UI handle the event
+        ui_handled = self.uiManager.handleEvent(event)
+        
+        # If UI didn't handle it, forward to actors
+        if not ui_handled:
+            for actor in self.actors:
+                if hasattr(actor, 'handleEvent'):
+                    if actor.handleEvent(event):
+                        break  # Stop if an actor handled the event
