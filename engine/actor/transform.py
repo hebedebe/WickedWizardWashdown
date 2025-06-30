@@ -22,3 +22,17 @@ class Transform:
     def setScale(self, x: float, y: float) -> None:
         """Set the scale of the actor."""
         self.scale = Vector2(x, y)
+
+    def serialize(self) -> dict:
+        """Serialize the transform data to a dictionary."""
+        return {
+            "position": [self.position.x, self.position.y],
+            "rotation": self.rotation,
+            "scale": [self.scale.x, self.scale.y]
+        }
+    
+    def deserialize(self, data: dict) -> None:
+        """Deserialize the transform data from a dictionary."""
+        self.position = Vector2(*data["position"])
+        self.rotation = data["rotation"]
+        self.scale = Vector2(*data["scale"])

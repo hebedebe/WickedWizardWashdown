@@ -65,3 +65,33 @@ class Actor:
         """Render the actor on the given surface."""
         # Render logic for the actor
         pass
+
+    def serialize(self) -> dict:
+        """Serialize the actor to a dictionary."""
+        data = {
+            "name": self.name,
+            "tags": list(self.tags),
+            "transform": self.transform.serialize(),
+            "components": [component.serialize() for component in self.components]
+        }
+        return data
+
+    def deserialize(self, data: dict) -> None:
+        """Deserialize the actor from a dictionary."""
+        from ..component.component import Component
+        self.name = data.get("name", "Actor")
+        self.tags = set(data.get("tags", []))
+        self.transform.deserialize(data.get("transform", {}))
+        self.components = [Component.deserialize(compData) for compData in data.get("components", [])]
+
+    @staticmethod
+    def createFromSerializedData(data: dict):
+        """
+        Create an actor instance from serialized data.
+        """
+        from ..component.component import Component
+        actor = Actor()
+        for component_data in data.get("components", []):
+            component = Component.createFromData(component_data)
+            actor.addComponent(component)
+        return actor
