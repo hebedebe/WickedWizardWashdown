@@ -103,7 +103,6 @@ class Actor:
         data = {
             "name": self.name,
             "tags": list(self.tags),
-            "transform": self.transform.serialize(),
             "components": [component.serialize() for component in self.components],
             # Serialize child relationships using names to avoid circular dependencies
             "parent_name": self.parent.name if self.parent else None,
@@ -116,7 +115,6 @@ class Actor:
         from ..component.component import Component
         self.name = data.get("name", "Actor")
         self.tags = set(data.get("tags", []))
-        self.transform.deserialize(data.get("transform", {}))
         self.components = [Component.deserialize(compData) for compData in data.get("components", [])]
         # Note: Parent/child relationships need to be re-established after all actors are deserialized
         # Store the relationship data for later processing
@@ -134,7 +132,6 @@ class Actor:
         # Deserialize basic actor properties
         actor.name = data.get("name", "Actor")
         actor.tags = set(data.get("tags", []))
-        actor.transform.deserialize(data.get("transform", {}))
         
         # Store relationship data for later processing
         actor._serialized_parent_name = data.get("parent_name")
