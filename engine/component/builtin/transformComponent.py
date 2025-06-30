@@ -33,66 +33,54 @@ class TransformComponent(Component):
         """Get the world position considering parent transforms."""
         if not self.actor:
             return pygame.Vector2(0, 0)
-            
-        world_pos = self.actor.transform.position.copy()
         
         parent_transform = self._get_parent_transform_component()
         if parent_transform:
             parent_world = parent_transform.get_world_position()
-            # Apply parent rotation to local position
             parent_rotation = parent_transform.get_world_rotation()
             rotated_local = self.local_position.rotate(parent_rotation)
             world_pos = parent_world + rotated_local
         else:
-            world_pos += self.local_position
-            
+            world_pos = self.local_position.copy()
         return world_pos
-        
+
     def get_world_rotation(self) -> float:
         """Get the world rotation considering parent transforms."""
         if not self.actor:
             return 0.0
-            
-        world_rot = self.actor.transform.rotation + self.local_rotation
-        
+        world_rot = self.local_rotation
         parent_transform = self._get_parent_transform_component()
         if parent_transform:
             parent_rot = parent_transform.get_world_rotation()
             world_rot += parent_rot
-            
         return world_rot
-        
+
     def get_world_scale(self) -> pygame.Vector2:
         """Get the world scale considering parent transforms."""
         if not self.actor:
             return pygame.Vector2(1, 1)
-            
-        world_scale = pygame.Vector2(
-            self.actor.transform.scale.x * self.local_scale.x,
-            self.actor.transform.scale.y * self.local_scale.y
-        )
-        
+        world_scale = self.local_scale.copy()
         parent_transform = self._get_parent_transform_component()
         if parent_transform:
             parent_scale = parent_transform.get_world_scale()
             world_scale.x *= parent_scale.x
             world_scale.y *= parent_scale.y
-            
         return world_scale
-        
+
     def set_world_position(self, world_pos: pygame.Vector2) -> None:
         """Set the world position, updating local position appropriately."""
         if not self.actor:
             return
-            
         parent_transform = self._get_parent_transform_component()
         if parent_transform:
             parent_world = parent_transform.get_world_position()
-            self.local_position = world_pos - parent_world
+            parent_rotation = parent_transform.get_world_rotation()
+            # Undo parent rotation for local position
+            local_pos = world_pos - parent_world
+            self.local_position = local_pos.rotate(-parent_rotation)
         else:
-            self.actor.transform.position = world_pos
-            self.local_position = pygame.Vector2(0, 0)
-            
+            self.local_position = world_pos.copy()
+
     def move_to(self, target_pos: pygame.Vector2) -> None:
         """Move to a target position."""
         if not self.lock_x and not self.lock_y:
@@ -103,22 +91,18 @@ class TransformComponent(Component):
         elif not self.lock_y:
             current = self.get_world_position()
             self.set_world_position(pygame.Vector2(current.x, target_pos.y))
-                
+
     def rotate_to(self, target_rot: float) -> None:
         """Rotate to a target rotation."""
         if self.lock_rotation:
             return
-            
-        if self.actor:
-            self.actor.transform.rotation = target_rot
-                
+        self.local_rotation = target_rot
+
     def scale_to(self, target_scale: pygame.Vector2) -> None:
         """Scale to a target scale."""
         if self.lock_scale:
             return
-            
-        if self.actor:
-            self.actor.transform.scale = target_scale
+        self.local_scale = target_scale.copy()
                 
     def update(self, dt: float) -> None:
         """Update the transform component."""
