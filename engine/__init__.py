@@ -31,6 +31,11 @@ register_serializer(
     lambda data: pygame.Rect(*data)
 )
 
+register_serializer(
+    pygame.Color,
+    lambda c: [c.r, c.g, c.b, c.a],
+    lambda data: pygame.Color(*data)
+)
 
 ### Game Engine Class ###
 
