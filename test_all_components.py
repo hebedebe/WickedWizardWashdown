@@ -58,7 +58,8 @@ def test_all_components():
     transform_actor.transform.setPosition(300, 300)
     
     transform_comp = TransformComponent()
-    transform_comp.interpolation_speed = 30
+    # Test some constraints
+    transform_comp.lock_rotation = False  # Allow rotation for demo
     transform_actor.addComponent(transform_comp)
     
     # Add a sprite to visualize the transform
@@ -153,6 +154,47 @@ def test_all_components():
     
     sprite_actor.addComponent(AnimationComponent())
     
+    # === Actor Parent/Child Transform Hierarchy Test ===
+    # Create a parent actor with a transform component
+    parent_actor = Actor("ParentActor")
+    parent_actor.transform.setPosition(400, 400)
+    parent_transform_comp = TransformComponent()
+    parent_actor.addComponent(parent_transform_comp)
+    
+    # Add a sprite to visualize the parent
+    parent_sprite = SpriteComponent("default_cursor")
+    parent_sprite.set_tint(pygame.Color(0, 255, 255))  # Cyan
+    parent_sprite.scale_modifier = pygame.Vector2(1.5, 1.5)  # Make it bigger to distinguish
+    parent_actor.addComponent(parent_sprite)
+    
+    # Create a child actor with a local offset
+    child_actor = Actor("ChildActor")
+    child_actor.setParent(parent_actor)  # Set parent relationship
+    child_transform_comp = TransformComponent()
+    child_transform_comp.local_position = pygame.Vector2(50, 0)  # Offset from parent
+    child_actor.addComponent(child_transform_comp)
+    
+    # Add a sprite to visualize the child
+    child_sprite = SpriteComponent("default_cursor")
+    child_sprite.set_tint(pygame.Color(255, 0, 255))  # Magenta
+    child_actor.addComponent(child_sprite)
+    
+    # Animate the parent to show hierarchical transformation
+    class ParentAnimationComponent(Component):
+        def __init__(self):
+            super().__init__()
+            self.time = 0
+            
+        def update(self, dt):
+            self.time += dt
+            # Rotate the parent, child should follow
+            self.actor.transform.rotation = self.time * 50  # Degrees per second
+    
+    parent_actor.addComponent(ParentAnimationComponent())
+    
+    test_scene.addActor(parent_actor)
+    test_scene.addActor(child_actor)
+    
     # === UI Elements ===
     test_scene.uiManager.addWidget(FPSDisplay())
     
@@ -165,6 +207,7 @@ def test_all_components():
     • Red sprite with TransformComponent
     • Green sprite with ColliderComponent (debug visible)
     • Yellow controllable sprite (InputComponent)
+    • Cyan parent with magenta child (Actor parent/child hierarchy)
     
     Controls:
     • WASD: Move yellow sprite
