@@ -196,6 +196,8 @@ class Game:
                 # Update current scene
                 if self.currentScene:
                     self.currentScene.update(self.fixedTimestep)
+                    self.currentScene.physicsUpdate(self.fixedTimestep)
+                    self.currentScene.lateUpdate(self.fixedTimestep)
 
                 # Update networking
                 self.networkManager.update()

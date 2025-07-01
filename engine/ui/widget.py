@@ -131,6 +131,15 @@ class Widget(ABC):
         # Update children
         for child in self.children:
             child.update(dt)
+
+    def lateUpdate(self, dt: float) -> None:
+        """Late update for widget logic."""
+        if not self.visible:
+            return
+            
+        # Late update children
+        for child in self.children:
+            child.lateUpdate(dt)
             
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle pygame events. Returns True if event was handled."""

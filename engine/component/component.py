@@ -36,6 +36,14 @@ class Component(ABC):
         """
         pass
 
+    def lateUpdate(self, delta_time):
+        """
+        Late update the component with the given delta time.
+        This is called after all components have been updated.
+        Override this method in derived classes to implement specific behavior.
+        """
+        pass
+
     def render(self, surface):
         """
         Render the component on the given surface.
