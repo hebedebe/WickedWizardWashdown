@@ -1,7 +1,7 @@
 import pygame
 import pymunk
 
-from ..component import Component
+from engine.component.component import Component
 from engine.logger import Logger
 
 class PhysicsComponent(Component):

@@ -1,5 +1,5 @@
 import pygame
-from ..widget import Widget, WidgetState
+from engine.ui.widget import Widget, WidgetState
 
 class Button(Widget):
     """

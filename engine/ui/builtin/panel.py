@@ -1,6 +1,6 @@
 import pygame
-from ..widget import Widget
-from ..event import UIEvent
+from engine.ui.widget import Widget
+from engine.ui.event import UIEvent
 
 class Panel(Widget):
     """
