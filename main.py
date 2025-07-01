@@ -6,6 +6,7 @@ from ballSpawnerComponent import BallSpawnerComponent
 
 def main():
     game = Game(800, 600, "Wicked Wizard Washdown")
+    game.assetManager.setDefaultFont("alagard.ttf", 24)
     Logger.debug("Initializing game engine...")
     scene = Scene()
     game.addScene("test", scene)
@@ -13,7 +14,7 @@ def main():
 
     # Add static boundaries (walls, floor, ceiling)
     width, height = 800, 600
-    thickness = 10
+    thickness = 1
     static_lines = [
         pymunk.Segment(scene.physicsSpace.static_body, (0, thickness), (width, thickness), thickness),  # ceiling
         pymunk.Segment(scene.physicsSpace.static_body, (0, height-thickness), (width, height-thickness), thickness),  # floor
