@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""
+Wicked Wizard Washdown Scene Editor
+A comprehensive GUI editor for creating and editing game scenes.
+"""
+
+import sys
+import os
+import traceback
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the engine
+parent_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(parent_dir))
+
+from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtCore import QDir, qInstallMessageHandler, QtMsgType
+from PyQt6.QtGui import QIcon
+
+from editor_main_window import EditorMainWindow
+from editor_utils import setup_logging
+
+def qt_message_handler(mode, context, message):
+    """Custom Qt message handler to redirect Qt logs to our logging system."""
+    import logging
+    logger = logging.getLogger('Qt')
+    
+    if mode == QtMsgType.QtDebugMsg:
+        logger.debug(message)
+    elif mode == QtMsgType.QtWarningMsg:
+        logger.warning(message)
+    elif mode == QtMsgType.QtCriticalMsg:
+        logger.error(message)
+    elif mode == QtMsgType.QtFatalMsg:
+        logger.critical(message)
+
+def main():
+    """Main entry point for the scene editor."""
+    try:
+        # Set up logging
+        setup_logging()
+        
+        # Create the QApplication
+        app = QApplication(sys.argv)
+
+        app.setStyle("windows")
+
+        app.setApplicationName("Wicked Wizard Washdown Scene Editor")
+        app.setApplicationVersion("1.0.0")
+        app.setOrganizationName("WickedWizard")
+        
+        # Install Qt message handler
+        qInstallMessageHandler(qt_message_handler)
+        
+        # Set application icon if available
+        icon_path = parent_dir / "assets" / "images" / "editor_icon.png"
+        if icon_path.exists():
+            app.setWindowIcon(QIcon(str(icon_path)))
+        
+        # Create and show the main window
+        main_window = EditorMainWindow()
+        main_window.show()
+        
+        # Start the event loop
+        return app.exec()
+        
+    except Exception as e:
+        error_msg = f"Failed to start Scene Editor: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+        print(error_msg, file=sys.stderr)
+        
+        # Try to show a message box if possible
+        try:
+            if 'app' in locals():
+                QMessageBox.critical(None, "Scene Editor Error", error_msg)
+            else:
+                app = QApplication(sys.argv)
+                QMessageBox.critical(None, "Scene Editor Error", error_msg)
+        except:
+            pass
+            
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
