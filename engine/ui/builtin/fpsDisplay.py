@@ -11,6 +11,13 @@ class FPSDisplay(Label):
                  update_interval: float = 0.5):
         # Create rect from position and size parameters
         rect = pygame.Rect(x, y, width, height)
+        if font is None:
+            try:
+                from ... import Game
+                game = Game._instance
+                font = game.assetManager.getDefaultFont()
+            except:
+                font = pygame.font.Font(None, 24)
         super().__init__(rect, "FPS: --", font, name)
         
         # FPS tracking
