@@ -7,6 +7,7 @@ A comprehensive GUI editor for creating and editing game scenes.
 import sys
 import os
 import traceback
+import logging
 from pathlib import Path
 
 # Add the parent directory to sys.path so we can import the engine
@@ -18,7 +19,7 @@ from PyQt6.QtCore import QDir, qInstallMessageHandler, QtMsgType
 from PyQt6.QtGui import QIcon
 
 from editor_main_window import EditorMainWindow
-from editor_utils import setup_logging
+from editor_utils import setup_logging, show_error_with_logging
 
 def qt_message_handler(mode, context, message):
     """Custom Qt message handler to redirect Qt logs to our logging system."""
@@ -34,11 +35,34 @@ def qt_message_handler(mode, context, message):
     elif mode == QtMsgType.QtFatalMsg:
         logger.critical(message)
 
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Global exception handler to log all unhandled exceptions."""
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Handle Ctrl+C gracefully
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    
+    error_msg = f"Unhandled exception: {exc_type.__name__}: {exc_value}\n"
+    error_msg += "".join(traceback.format_tb(exc_traceback))
+    
+    # Log to file
+    logging.getLogger('global_exceptions').critical(error_msg)
+    
+    # Show popup if possible
+    try:
+        show_error_with_logging("Unhandled Exception", error_msg)
+    except:
+        # Fallback to console if GUI is not available
+        print(f"CRITICAL ERROR: {error_msg}", file=sys.stderr)
+
 def main():
     """Main entry point for the scene editor."""
     try:
         # Set up logging
         setup_logging()
+        
+        # Install global exception handler
+        sys.excepthook = global_exception_handler
         
         # Create the QApplication
         app = QApplication(sys.argv)
@@ -66,19 +90,14 @@ def main():
         
     except Exception as e:
         error_msg = f"Failed to start Scene Editor: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
-        print(error_msg, file=sys.stderr)
         
-        # Try to show a message box if possible
-        try:
-            if 'app' in locals():
-                QMessageBox.critical(None, "Scene Editor Error", error_msg)
-            else:
-                app = QApplication(sys.argv)
-                QMessageBox.critical(None, "Scene Editor Error", error_msg)
-        except:
-            pass
-            
+        # Log the error and show popup
+        show_error_with_logging("Scene Editor Startup Error", error_msg)
+        
         return 1
 
 if __name__ == "__main__":
+    # Install the global exception handler
+    sys.excepthook = global_exception_handler
+    
     sys.exit(main())

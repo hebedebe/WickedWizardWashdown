@@ -5,8 +5,10 @@ Main window for the Scene Editor.
 import sys
 import os
 import logging
+import traceback
 from pathlib import Path
 from typing import Optional, Dict, List
+import traceback
 
 from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QSplitter,
@@ -22,7 +24,10 @@ import editor_dummy  # This patches the engine
 
 from editor_project import EditorProject
 from editor_scene import EditorScene
-from editor_utils import show_error, show_warning, show_info, ask_yes_no, UndoRedoManager
+from editor_utils import (
+    show_error, show_warning, show_info, ask_yes_no, UndoRedoManager,
+    show_error_with_logging, show_warning_with_logging
+)
 from editor_hierarchy import HierarchyWidget
 from editor_inspector import InspectorWidget
 from editor_scene_view import SceneViewWidget
@@ -462,8 +467,9 @@ class EditorMainWindow(QMainWindow):
         
     def _show_about(self):
         """Show about dialog."""
-        QMessageBox.about(self, "About Scene Editor", 
-                         "Wicked Wizard Washdown Scene Editor\nVersion 1.0\n\nA comprehensive scene editing tool.")
+        about_msg = "Wicked Wizard Washdown Scene Editor\nVersion 1.0\n\nA comprehensive scene editing tool."
+        logging.getLogger('editor_info').info(f"About dialog shown: {about_msg}")
+        QMessageBox.about(self, "About Scene Editor", about_msg)
                          
     def _update_project_status(self):
         """Update the project status display."""
@@ -552,10 +558,11 @@ class EditorMainWindow(QMainWindow):
         """Handle property changes from the inspector."""
         # TODO: Create undo command for property changes
         setattr(obj, property_name, new_value)
-        if hasattr(obj, 'scene'):
-            obj.scene.mark_dirty()
-        elif self.project and self.project.get_active_scene():
+        
+        # Mark the active EditorScene as dirty
+        if self.project and self.project.get_active_scene():
             self.project.get_active_scene().mark_dirty()
+            
         self._update_project_status()
         
     def _check_unsaved_changes(self) -> bool:
@@ -563,6 +570,7 @@ class EditorMainWindow(QMainWindow):
         if not self.project or not self.project.has_unsaved_changes():
             return True
             
+        logging.getLogger('editor_dialog').info("Showing unsaved changes dialog")
         reply = QMessageBox.question(
             self, "Unsaved Changes", 
             "There are unsaved changes. Do you want to save them?",
@@ -570,11 +578,14 @@ class EditorMainWindow(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Save:
+            logging.getLogger('editor_dialog').info("User chose to save unsaved changes")
             self._save_project()
             return not self.project.has_unsaved_changes()  # Only proceed if save was successful
         elif reply == QMessageBox.StandardButton.Discard:
+            logging.getLogger('editor_dialog').info("User chose to discard unsaved changes")
             return True
         else:  # Cancel
+            logging.getLogger('editor_dialog').info("User cancelled operation due to unsaved changes")
             return False
             
     def _auto_save(self):
@@ -594,3 +605,17 @@ class EditorMainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+            
+    def show_error(self, title: str, message: str):
+        """Show an error dialog with logging."""
+        show_error_with_logging(title, message, self)
+        
+    def show_warning(self, title: str, message: str):
+        """Show a warning dialog with logging."""
+        show_warning_with_logging(title, message, self)
+        
+    def handle_exception(self, exc_type, exc_value, exc_traceback):
+        """Handle exceptions in the main window."""
+        error_msg = f"Editor exception: {exc_type.__name__}: {exc_value}\n"
+        error_msg += "".join(traceback.format_tb(exc_traceback))
+        self.show_error("Editor Error", error_msg)

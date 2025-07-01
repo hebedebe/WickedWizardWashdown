@@ -17,23 +17,35 @@ from PyQt6.QtCore import QObject, pyqtSignal, QStandardPaths
 from PyQt6.QtWidgets import QMessageBox
 
 def setup_logging():
-    """Set up logging for the editor."""
-    # Create logs directory
-    logs_dir = Path("editor_logs")
-    logs_dir.mkdir(exist_ok=True)
-    
-    # Configure logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(logs_dir / "editor.log"),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    
-    logger = logging.getLogger(__name__)
-    logger.info("Scene Editor logging initialized")
+    """Set up logging to both console and file."""
+    # Set up logging to both console and file
+    log_dir = os.path.join(os.path.dirname(__file__), '..')
+    log_file = os.path.abspath(os.path.join(log_dir, 'editor.log'))
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+
+    # File handler
+    file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+
+    # Avoid duplicate handlers
+    if not logger.hasHandlers():
+        logger.addHandler(console_handler)
+        logger.addHandler(file_handler)
+    else:
+        logger.handlers.clear()
+        logger.addHandler(console_handler)
+        logger.addHandler(file_handler)
+
+    logging.info('Scene Editor logging initialized')
 
 def show_error(title: str, message: str, parent=None):
     """Show an error message box."""
@@ -375,3 +387,31 @@ def get_property_info(obj, prop_name: str) -> Dict[str, Any]:
                 info["widget"] = "rect"
     
     return info
+
+def show_error_with_logging(title: str, message: str, parent=None):
+    """Show an error popup and log the error message."""
+    logger = logging.getLogger('editor_errors')
+    logger.error(f"{title}: {message}")
+    
+    try:
+        from PyQt6.QtWidgets import QMessageBox, QApplication
+        if not QApplication.instance():
+            app = QApplication([])
+        QMessageBox.critical(parent, title, message)
+    except Exception as e:
+        logger.error(f"Failed to show error popup: {e}")
+        print(f"ERROR - {title}: {message}", file=sys.stderr)
+
+def show_warning_with_logging(title: str, message: str, parent=None):
+    """Show a warning popup and log the warning message."""
+    logger = logging.getLogger('editor_warnings')
+    logger.warning(f"{title}: {message}")
+    
+    try:
+        from PyQt6.QtWidgets import QMessageBox, QApplication
+        if not QApplication.instance():
+            app = QApplication([])
+        QMessageBox.warning(parent, title, message)
+    except Exception as e:
+        logger.error(f"Failed to show warning popup: {e}")
+        print(f"WARNING - {title}: {message}", file=sys.stderr)

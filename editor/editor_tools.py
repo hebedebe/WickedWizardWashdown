@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QTextEdit, QTreeWidget, QTreeWidgetItem,
     QProgressBar, QSpinBox, QCheckBox, QGroupBox, QFormLayout,
     QSlider, QComboBox, QListWidget, QSplitter, QTableWidget,
-    QTableWidgetItem, QHeaderView
+    QTableWidgetItem, QHeaderView, QLineEdit
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QObject
 from PyQt6.QtGui import QFont
@@ -165,6 +165,14 @@ class ToolsWidget(QWidget):
         
         # Settings tab
         self._init_settings_tab()
+        
+        # Python Debugger tab
+        debugger_widget = self._create_debugger_tab()
+        self.tab_widget.addTab(debugger_widget, "Debugger")
+        
+        # Console/REPL tab
+        console_widget = self._create_console_tab()
+        self.tab_widget.addTab(console_widget, "Console")
         
         layout.addWidget(self.tab_widget)
         
@@ -477,3 +485,163 @@ class ToolsWidget(QWidget):
         self.backup_count.setValue(settings.get("backup_count", 5))
         self.max_undo_steps.setValue(settings.get("max_undo_steps", 100))
         self.refresh_rate.setValue(settings.get("refresh_rate", 60))
+        
+    def _create_debugger_tab(self):
+        """Create the Python Debugger tab."""
+        debugger_widget = QWidget()
+        debugger_layout = QVBoxLayout(debugger_widget)
+        
+        # Debugger controls
+        controls_layout = QHBoxLayout()
+        
+        self.start_debugger_btn = QPushButton("Start Debugger")
+        self.start_debugger_btn.clicked.connect(self._start_debugger)
+        controls_layout.addWidget(self.start_debugger_btn)
+        
+        self.stop_debugger_btn = QPushButton("Stop Debugger")
+        self.stop_debugger_btn.clicked.connect(self._stop_debugger)
+        self.stop_debugger_btn.setEnabled(False)
+        controls_layout.addWidget(self.stop_debugger_btn)
+        
+        self.set_breakpoint_btn = QPushButton("Set Breakpoint")
+        self.set_breakpoint_btn.clicked.connect(self._set_breakpoint)
+        controls_layout.addWidget(self.set_breakpoint_btn)
+        
+        controls_layout.addStretch()
+        debugger_layout.addLayout(controls_layout)
+        
+        # Breakpoints list
+        breakpoints_group = QGroupBox("Breakpoints")
+        breakpoints_layout = QVBoxLayout(breakpoints_group)
+        
+        self.breakpoints_list = QListWidget()
+        self.breakpoints_list.setMaximumHeight(100)
+        breakpoints_layout.addWidget(self.breakpoints_list)
+        
+        # Add/remove breakpoint controls
+        bp_controls = QHBoxLayout()
+        self.bp_file_input = QLineEdit()
+        self.bp_file_input.setPlaceholderText("File path...")
+        bp_controls.addWidget(self.bp_file_input)
+        
+        self.bp_line_input = QSpinBox()
+        self.bp_line_input.setRange(1, 999999)
+        self.bp_line_input.setValue(1)
+        bp_controls.addWidget(self.bp_line_input)
+        
+        self.add_bp_btn = QPushButton("Add")
+        self.add_bp_btn.clicked.connect(self._add_breakpoint)
+        bp_controls.addWidget(self.add_bp_btn)
+        
+        self.remove_bp_btn = QPushButton("Remove")
+        self.remove_bp_btn.clicked.connect(self._remove_breakpoint)
+        bp_controls.addWidget(self.remove_bp_btn)
+        
+        breakpoints_layout.addLayout(bp_controls)
+        debugger_layout.addWidget(breakpoints_group)
+        
+        # Debugger output
+        self.debugger_output = QTextEdit()
+        self.debugger_output.setReadOnly(True)
+        self.debugger_output.setMaximumHeight(200)
+        debugger_layout.addWidget(self.debugger_output)
+        
+        # Variables view
+        vars_group = QGroupBox("Variables")
+        vars_layout = QVBoxLayout(vars_group)
+        
+        self.variables_tree = QTreeWidget()
+        self.variables_tree.setHeaderLabels(["Name", "Type", "Value"])
+        vars_layout.addWidget(self.variables_tree)
+        
+        debugger_layout.addWidget(vars_group)
+        
+        self.debugger_active = False
+        self.breakpoints = []
+        
+        return debugger_widget
+        
+    def _start_debugger(self):
+        """Start the Python debugger."""
+        import pdb
+        self.debugger_output.append("Python debugger started. Use pdb commands in console.")
+        self.debugger_output.append("Available commands: n(ext), s(tep), c(ontinue), l(ist), p <var>, pp <var>")
+        self.start_debugger_btn.setEnabled(False)
+        self.stop_debugger_btn.setEnabled(True)
+        self.debugger_active = True
+        
+        # Set up debugging environment
+        import sys
+        import traceback
+        
+        # Install custom exception hook to catch errors
+        def debug_excepthook(exc_type, exc_value, exc_traceback):
+            self.debugger_output.append(f"Exception caught: {exc_type.__name__}: {exc_value}")
+            self.debugger_output.append("".join(traceback.format_tb(exc_traceback)))
+            
+        sys.excepthook = debug_excepthook
+        
+        # TODO: Implement actual debugger start logic
+        
+    def _set_breakpoint(self):
+        file_path = self.bp_file_input.text().strip()
+        line = self.bp_line_input.value()
+        if file_path and line:
+            bp_str = f"{file_path}:{line}"
+            if bp_str not in self.breakpoints:
+                self.breakpoints.append(bp_str)
+                self.breakpoints_list.addItem(bp_str)
+                self.debugger_output.append(f"Breakpoint set: {bp_str}")
+
+    def _add_breakpoint(self):
+        self._set_breakpoint()
+
+    def _remove_breakpoint(self):
+        selected = self.breakpoints_list.currentRow()
+        if selected >= 0:
+            bp_str = self.breakpoints_list.item(selected).text()
+            self.breakpoints_list.takeItem(selected)
+            if bp_str in self.breakpoints:
+                self.breakpoints.remove(bp_str)
+                self.debugger_output.append(f"Breakpoint removed: {bp_str}")
+
+    def _stop_debugger(self):
+        self.debugger_output.append("Debugger stopped.")
+        self.start_debugger_btn.setEnabled(True)
+        self.stop_debugger_btn.setEnabled(False)
+        self.debugger_active = False
+        # Optionally, reset sys.excepthook to default
+        import sys
+        sys.excepthook = sys.__excepthook__
+        
+    def _create_console_tab(self):
+        """Create the Console/REPL tab."""
+        console_widget = QWidget()
+        console_layout = QVBoxLayout(console_widget)
+        
+        # Console output
+        self.console_output = QTextEdit()
+        self.console_output.setReadOnly(True)
+        console_layout.addWidget(self.console_output)
+        
+        # Console input
+        self.console_input = QTextEdit()
+        console_layout.addWidget(self.console_input)
+        
+        # Execute button
+        self.execute_btn = QPushButton("Execute")
+        self.execute_btn.clicked.connect(self._execute_console_command)
+        console_layout.addWidget(self.execute_btn)
+        
+        return console_widget
+        
+    def _execute_console_command(self):
+        """Execute the command in the console input."""
+        command = self.console_input.toPlainText().strip()
+        if not command:
+            return
+        
+        self.console_output.append(f">>> {command}")
+        self.console_input.clear()
+        
+        # TODO: Implement actual command execution logic
