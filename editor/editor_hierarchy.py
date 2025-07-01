@@ -9,7 +9,8 @@ from typing import Optional, List, Any
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem, 
     QPushButton, QMenu, QInputDialog, QComboBox, QLabel, QSplitter,
-    QTabWidget, QMessageBox
+    QTabWidget, QMessageBox, QDialog, QFormLayout, QLineEdit, QSpinBox,
+    QDoubleSpinBox, QCheckBox, QDialogButtonBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QMimeData, QPoint
 from PyQt6.QtGui import QDrag, QDropEvent, QDragEnterEvent, QDragMoveEvent
@@ -233,7 +234,12 @@ class HierarchyWidget(QWidget):
         if ok and component_name:
             try:
                 component_class = components[component_name]
-                component = component_class()
+                
+                # Create component with appropriate parameters
+                component = self._create_component_with_params(component_class, component_name)
+                if component is None:
+                    return  # User cancelled or error occurred
+                    
                 actor.addComponent(component)
                 self.scene.mark_dirty()
                 
@@ -418,3 +424,174 @@ class HierarchyWidget(QWidget):
         """Set the selected object from external source."""
         self.selected_object = obj
         # TODO: Find and select the corresponding tree item
+    
+    def _create_component_with_params(self, component_class, component_name):
+        """Create a component with appropriate parameters based on its type."""
+        import inspect
+        import pygame
+        
+        # Get the constructor signature
+        try:
+            sig = inspect.signature(component_class.__init__)
+            params = list(sig.parameters.keys())[1:]  # Skip 'self'
+        except Exception as e:
+            # Fallback for components without parameters
+            params = []
+        
+        if not params:
+            # Component doesn't need parameters
+            return component_class()
+        
+        # Handle specific known components with custom dialogs
+        if component_name == "CircleRendererComponent":
+            return self._create_circle_renderer_component()
+        elif component_name == "PhysicsComponent":
+            return self._create_physics_component()
+        else:
+            # Generic parameter dialog for other components
+            return self._create_generic_component(component_class, params)
+    
+    def _create_circle_renderer_component(self):
+        """Create CircleRendererComponent with radius and color parameters."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Circle Renderer Component")
+        dialog.setModal(True)
+        
+        layout = QFormLayout(dialog)
+        
+        # Radius input
+        radius_spin = QSpinBox()
+        radius_spin.setRange(1, 1000)
+        radius_spin.setValue(50)
+        layout.addRow("Radius:", radius_spin)
+        
+        # Color inputs (RGB)
+        red_spin = QSpinBox()
+        red_spin.setRange(0, 255)
+        red_spin.setValue(255)
+        layout.addRow("Red:", red_spin)
+        
+        green_spin = QSpinBox()
+        green_spin.setRange(0, 255)
+        green_spin.setValue(255)
+        layout.addRow("Green:", green_spin)
+        
+        blue_spin = QSpinBox()
+        blue_spin.setRange(0, 255)
+        blue_spin.setValue(255)
+        layout.addRow("Blue:", blue_spin)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            from engine.component.builtin.circleRendererComponent import CircleRendererComponent
+            radius = radius_spin.value()
+            color = (red_spin.value(), green_spin.value(), blue_spin.value())
+            return CircleRendererComponent(radius, color)
+        
+        return None
+    
+    def _create_physics_component(self):
+        """Create PhysicsComponent with body and shapes parameters."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Physics Component")
+        dialog.setModal(True)
+        
+        layout = QFormLayout(dialog)
+        
+        # Body type selection
+        body_type_combo = QComboBox()
+        body_type_combo.addItems(["Dynamic", "Static", "Kinematic"])
+        layout.addRow("Body Type:", body_type_combo)
+        
+        # Mass input (for dynamic bodies)
+        mass_spin = QDoubleSpinBox()
+        mass_spin.setRange(0.1, 1000.0)
+        mass_spin.setValue(1.0)
+        layout.addRow("Mass:", mass_spin)
+        
+        # Shape type selection
+        shape_type_combo = QComboBox()
+        shape_type_combo.addItems(["Circle", "Box"])
+        layout.addRow("Shape Type:", shape_type_combo)
+        
+        # Shape size inputs
+        size_spin = QDoubleSpinBox()
+        size_spin.setRange(1.0, 1000.0)
+        size_spin.setValue(25.0)
+        layout.addRow("Size/Radius:", size_spin)
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            import pymunk
+            from engine.component.builtin.physicsComponent import PhysicsComponent
+            
+            # Create body
+            body_type_map = {
+                "Dynamic": pymunk.Body.DYNAMIC,
+                "Static": pymunk.Body.STATIC,
+                "Kinematic": pymunk.Body.KINEMATIC
+            }
+            body_type = body_type_map[body_type_combo.currentText()]
+            
+            if body_type == pymunk.Body.DYNAMIC:
+                # Calculate moment of inertia
+                if shape_type_combo.currentText() == "Circle":
+                    moment = pymunk.moment_for_circle(mass_spin.value(), 0, size_spin.value())
+                else:  # Box
+                    moment = pymunk.moment_for_box(mass_spin.value(), (size_spin.value(), size_spin.value()))
+                body = pymunk.Body(mass_spin.value(), moment)
+            else:
+                body = pymunk.Body(body_type=body_type)
+            
+            # Create shape
+            if shape_type_combo.currentText() == "Circle":
+                shape = pymunk.Circle(body, size_spin.value())
+            else:  # Box
+                shape = pymunk.Poly.create_box(body, (size_spin.value(), size_spin.value()))
+            
+            return PhysicsComponent(body, [shape])
+        
+        return None
+    
+    def _create_generic_component(self, component_class, params):
+        """Create a component with a generic parameter dialog."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Create {component_class.__name__}")
+        dialog.setModal(True)
+        
+        layout = QFormLayout(dialog)
+        
+        inputs = {}
+        for param in params:
+            # Create a generic string input for each parameter
+            line_edit = QLineEdit()
+            line_edit.setPlaceholderText(f"Enter {param}...")
+            layout.addRow(f"{param}:", line_edit)
+            inputs[param] = line_edit
+        
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addRow(buttons)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            try:
+                # Try to create the component with string parameters
+                args = [inputs[param].text() for param in params]
+                return component_class(*args)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to create component:\n{str(e)}")
+                return None
+        
+        return None
