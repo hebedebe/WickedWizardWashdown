@@ -20,12 +20,22 @@ import os
 import json
 import importlib.util
 import inspect
+import time
+import threading
+import csv
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Type, Union
 from dataclasses import dataclass, field
+from datetime import datetime
 
 # Add the parent directory to the path to import engine modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget,
@@ -41,13 +51,21 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import (
     QAction, QKeySequence, QFont, QIcon, QPixmap, QPainter, QColor,
-    QDrag, QPalette, QUndoStack, QUndoCommand
+    QDrag, QPalette, QUndoStack, QUndoCommand, QActionGroup
 )
 
 # Import engine components
 from engine.actor.actor import Actor, Transform
 from engine.component.component import Component
 from engine.ui.widget import Widget
+
+# Import pygame for UI operations
+try:
+    import pygame
+    pygame.init()
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
 
 
 class EditorScene:
@@ -816,11 +834,11 @@ class PropertyEditor(QWidget):
         for prop_name, value in widget.__dict__.items():
             if self._shouldSkipProperty(prop_name, value):
                 continue
-                
+            
             # Skip properties we already handled
             if prop_name in ['name', 'visible', 'enabled', 'rect', 'lambda_scripts']:
                 continue
-                
+            
             self._addGenericProperty(prop_name, value)
             
         # Add lambda scripts section (read-only info, editing done in Scripts tab)
@@ -1363,7 +1381,8 @@ class UIElementManager(QWidget):
                 print(f"UI element added to scene. Total UI elements: {len(self.scene.ui_elements)}")
             else:
                 print(f"Failed to create UI element: {element_name}")
-                print(f"Available UI elements: {self.registry.getUIElementNames()}")
+                self.status_bar.showMessage(f"Failed to create UI element: {element_name}")
+                
                 # Try to add basic Widget as fallback
                 import pygame
                 fallback_widget = Widget(pygame.Rect(0, 0, 100, 30), name=f"Widget_{len(self.scene.ui_elements)}")
@@ -1660,6 +1679,250 @@ class LambdaScriptManager(QWidget):
             print(f"✗ Script error: {e}")
 
 
+# Theme Management
+class ThemeManager:
+    """Manages application themes."""
+    
+    THEMES = {
+        'Light': {
+            'window': '#f0f0f0',
+            'base': '#ffffff',
+            'text': '#000000',
+            'highlight': '#0078d4',
+            'button': '#e1e1e1'
+        },
+        'Dark': {
+            'window': '#2b2b2b', 
+            'base': '#383838',
+            'text': '#ffffff',
+            'highlight': '#0078d4',
+            'button': '#404040'
+        },
+        'Blue': {
+            'window': '#1e3a5f',
+            'base': '#2c5d87',
+            'text': '#ffffff',
+            'highlight': '#4a9eff',
+            'button': '#3d7068'
+        },
+        'Green': {
+            'window': '#1a3d2e',
+            'base': '#2d5a47',
+            'text': '#ffffff', 
+            'highlight': '#4ade80',
+            'button': '#347855'
+        }
+    }
+    
+    def __init__(self, app):
+        self.app = app
+        self.current_theme = 'Light'
+        
+    def apply_theme(self, theme_name: str):
+        """Apply a theme to the application."""
+        if theme_name not in self.THEMES:
+            return
+            
+        self.current_theme = theme_name
+        theme = self.THEMES[theme_name]
+        
+        palette = QPalette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(theme['window']))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(theme['text']))
+        palette.setColor(QPalette.ColorRole.Base, QColor(theme['base']))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(theme['button']))
+        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(theme['base']))
+        palette.setColor(QPalette.ColorRole.ToolTipText, QColor(theme['text']))
+        palette.setColor(QPalette.ColorRole.Text, QColor(theme['text']))
+        palette.setColor(QPalette.ColorRole.Button, QColor(theme['button']))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(theme['text']))
+        palette.setColor(QPalette.ColorRole.BrightText, QColor('#ff0000'))
+        palette.setColor(QPalette.ColorRole.Link, QColor(theme['highlight']))
+        palette.setColor(QPalette.ColorRole.Highlight, QColor(theme['highlight']))
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor('#ffffff'))
+        
+        self.app.setPalette(palette)
+
+
+# Performance Monitoring
+class PerformanceMonitor(QWidget):
+    """Real-time performance monitoring widget."""
+    
+    def __init__(self):
+        super().__init__()
+        self.cpu_history = []
+        self.memory_history = []
+        self.max_history = 100
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_stats)
+        self.setupUI()
+        
+    def setupUI(self):
+        layout = QVBoxLayout(self)
+        
+        # Control buttons
+        controls = QHBoxLayout()
+        
+        self.start_btn = QPushButton("Start Monitoring")
+        self.start_btn.clicked.connect(self.start_monitoring)
+        controls.addWidget(self.start_btn)
+        
+        self.stop_btn = QPushButton("Stop Monitoring")
+        self.stop_btn.clicked.connect(self.stop_monitoring)
+        self.stop_btn.setEnabled(False)
+        controls.addWidget(self.stop_btn)
+        
+        self.clear_btn = QPushButton("Clear History")
+        self.clear_btn.clicked.connect(self.clear_history)
+        controls.addWidget(self.clear_btn)
+        
+        layout.addLayout(controls)
+        
+        # Stats display
+        stats_group = QGroupBox("Current Stats")
+        stats_layout = QFormLayout(stats_group)
+        
+        self.cpu_label = QLabel("0%")
+        self.memory_label = QLabel("0 MB")
+        self.process_count_label = QLabel("0")
+        
+        stats_layout.addRow("CPU Usage:", self.cpu_label)
+        stats_layout.addRow("Memory Usage:", self.memory_label)
+        stats_layout.addRow("Process Count:", self.process_count_label)
+        
+        layout.addWidget(stats_group)
+        
+        # History display
+        history_group = QGroupBox("Performance History")
+        history_layout = QVBoxLayout(history_group)
+        
+        self.history_text = QTextEdit()
+        self.history_text.setMaximumHeight(200)
+        self.history_text.setReadOnly(True)
+        history_layout.addWidget(self.history_text)
+        
+        layout.addWidget(history_group)
+        
+        # Memory analysis
+        memory_group = QGroupBox("Memory Analysis")
+        memory_layout = QVBoxLayout(memory_group)
+        
+        analyze_btn = QPushButton("Analyze Memory Usage")
+        analyze_btn.clicked.connect(self.analyze_memory)
+        memory_layout.addWidget(analyze_btn)
+        
+        self.memory_analysis = QTextEdit()
+        self.memory_analysis.setMaximumHeight(150)
+        self.memory_analysis.setReadOnly(True)
+        memory_layout.addWidget(self.memory_analysis)
+        
+        layout.addWidget(memory_group)
+        
+    def start_monitoring(self):
+        """Start performance monitoring."""
+        if not PSUTIL_AVAILABLE:
+            self.history_text.append("Error: psutil not available. Performance monitoring disabled.")
+            return
+            
+        self.update_timer.start(1000)  # Update every second
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        self.history_text.append("Performance monitoring started...")
+        
+    def stop_monitoring(self):
+        """Stop performance monitoring."""
+        self.update_timer.stop()
+        self.start_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+        self.history_text.append("Performance monitoring stopped.")
+        
+    def clear_history(self):
+        """Clear performance history."""
+        self.cpu_history.clear()
+        self.memory_history.clear()
+        self.history_text.clear()
+        
+    def update_stats(self):
+        """Update performance statistics."""
+        if not PSUTIL_AVAILABLE:
+            return
+            
+        try:
+            # Get system stats
+            cpu_percent = psutil.cpu_percent()
+            memory = psutil.virtual_memory()
+            process_count = len(psutil.pids())
+            
+            # Update current stats
+            self.cpu_label.setText(f"{cpu_percent:.1f}%")
+            self.memory_label.setText(f"{memory.used / 1024 / 1024:.1f} MB ({memory.percent:.1f}%)")
+            self.process_count_label.setText(str(process_count))
+            
+            # Store history
+            self.cpu_history.append(cpu_percent)
+            self.memory_history.append(memory.percent)
+            
+            # Limit history size
+            if len(self.cpu_history) > self.max_history:
+                self.cpu_history.pop(0)
+                self.memory_history.pop(0)
+                
+            # Update history display
+            if len(self.cpu_history) > 1:
+                latest = f"CPU: {cpu_percent:.1f}%, Memory: {memory.percent:.1f}%"
+                self.history_text.append(latest)
+                
+                # Auto-scroll to bottom
+                scrollbar = self.history_text.verticalScrollBar()
+                scrollbar.setValue(scrollbar.maximum())
+                
+        except Exception as e:
+            self.history_text.append(f"Error updating stats: {e}")
+            
+    def analyze_memory(self):
+        """Analyze current memory usage."""
+        if not PSUTIL_AVAILABLE:
+            self.memory_analysis.setText("psutil not available for memory analysis.")
+            return
+            
+        try:
+            # Get process info
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            
+            analysis = f"""Memory Analysis Report:
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Process Memory:
+- RSS (Resident Set Size): {memory_info.rss / 1024 / 1024:.2f} MB
+- VMS (Virtual Memory Size): {memory_info.vms / 1024 / 1024:.2f} MB
+
+System Memory:
+- Total: {psutil.virtual_memory().total / 1024 / 1024 / 1024:.2f} GB
+- Available: {psutil.virtual_memory().available / 1024 / 1024 / 1024:.2f} GB
+- Used: {psutil.virtual_memory().percent:.1f}%
+
+Performance History (last 10 readings):
+CPU: {', '.join([f'{x:.1f}%' for x in self.cpu_history[-10:]])}
+Memory: {', '.join([f'{x:.1f}%' for x in self.memory_history[-10:]])}"""
+            
+            self.memory_analysis.setText(analysis)
+            
+        except Exception as e:
+            self.memory_analysis.setText(f"Error analyzing memory: {e}")
+
+
+# Multi-tab Scene Management
+class SceneTab:
+    """Represents a scene tab with its associated data."""
+    
+    def __init__(self, scene: 'EditorScene', file_path: str = None, is_modified: bool = False):
+        self.scene = scene
+        self.file_path = file_path
+        self.is_modified = is_modified
+        self.undo_stack = QUndoStack()
+
+
 class SceneEditor(QMainWindow):
     """Main scene editor window."""
     
@@ -1751,8 +2014,58 @@ class SceneEditor(QMainWindow):
         self.lambda_manager.setScene(self.scene)
         right_panel.addTab(self.lambda_manager, "Scripts")
         
-        # Tools tab (placeholder for future tools)
+        # Tools tab (multi-tool panel)
         tools_widget = QWidget()
+        tools_layout = QVBoxLayout(tools_widget)
+        tools_layout.setContentsMargins(4, 4, 4, 4)
+        tools_layout.setSpacing(8)
+
+        # --- Performance Monitor ---
+        perf_group = QGroupBox("Performance Monitor")
+        perf_layout = QVBoxLayout(perf_group)
+        self.performance_monitor = PerformanceMonitor()
+        perf_layout.addWidget(self.performance_monitor)
+        tools_layout.addWidget(perf_group)
+
+        # --- Theme Switcher ---
+        theme_group = QGroupBox("Theme Switcher")
+        theme_layout = QHBoxLayout(theme_group)
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(ThemeManager.THEMES.keys())
+        theme_layout.addWidget(QLabel("Theme:"))
+        theme_layout.addWidget(self.theme_combo)
+        theme_apply_btn = QPushButton("Apply")
+        theme_layout.addWidget(theme_apply_btn)
+        tools_layout.addWidget(theme_group)
+        self.theme_manager = ThemeManager(QApplication.instance())
+        theme_apply_btn.clicked.connect(lambda: self.theme_manager.apply_theme(self.theme_combo.currentText()))
+
+        # --- Asset Info Tool ---
+        asset_group = QGroupBox("Asset Info")
+        asset_layout = QVBoxLayout(asset_group)
+        asset_btn = QPushButton("Scan Assets")
+        asset_layout.addWidget(asset_btn)
+        self.asset_info_text = QTextEdit()
+        self.asset_info_text.setReadOnly(True)
+        self.asset_info_text.setMaximumHeight(120)
+        asset_layout.addWidget(self.asset_info_text)
+        tools_layout.addWidget(asset_group)
+        asset_btn.clicked.connect(self.scan_assets)
+
+        # --- Scene Validator ---
+        validator_group = QGroupBox("Scene Validator")
+        validator_layout = QVBoxLayout(validator_group)
+        validate_btn = QPushButton("Validate Scene")
+        validator_layout.addWidget(validate_btn)
+        self.validator_text = QTextEdit()
+        self.validator_text.setReadOnly(True)
+        self.validator_text.setMaximumHeight(80)
+        validator_layout.addWidget(self.validator_text)
+        tools_layout.addWidget(validator_group)
+        validate_btn.clicked.connect(self.validate_scene)
+
+        # Spacer
+        tools_layout.addStretch(1)
         right_panel.addTab(tools_widget, "Tools")
         
         main_layout.addWidget(right_panel)
@@ -1860,6 +2173,7 @@ class SceneEditor(QMainWindow):
     def setupStatusBar(self):
         """Setup status bar."""
         self.status_bar = self.statusBar()
+
         self.status_bar.showMessage("Ready")
         
     def setupConnections(self):
@@ -1938,6 +2252,7 @@ class SceneEditor(QMainWindow):
         else:
             return False
             
+
     # File operations
     def newScene(self):
         """Create a new scene."""
@@ -2196,10 +2511,6 @@ class SceneEditor(QMainWindow):
             print(f"Failed to create component: {component_name}")
             self.status_bar.showMessage(f"Failed to create component: {component_name}")
             
-            # Show available components for debugging
-            available = self.registry.getComponentNames()
-            print(f"Available components: {available}")
-            
     def onPropertyChanged(self, prop_name: str, old_value: Any, new_value: Any):
         """Handle property changes."""
         # Create undo command for property change
@@ -2245,6 +2556,104 @@ class SceneEditor(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def scan_assets(self):
+        """Scan the assets directory and display info."""
+        assets_dir = Path(os.path.dirname(os.path.dirname(__file__))) / "assets"
+        if not assets_dir.exists():
+            self.asset_info_text.setText("No assets directory found.")
+            return
+        
+        info = []
+        total_size = 0
+        file_count = 0
+        
+        for root, dirs, files in os.walk(assets_dir):
+            for f in files:
+                path = Path(root) / f
+                try:
+                    size = path.stat().st_size
+                    total_size += size
+                    file_count += 1
+                    relative_path = path.relative_to(assets_dir)
+                    info.append(f"{relative_path} - {size/1024:.1f} KB")
+                except Exception as e:
+                    info.append(f"{path.name} - Error: {e}")
+        
+        if info:
+            summary = f"Total: {file_count} files, {total_size/1024/1024:.2f} MB\n\n"
+            self.asset_info_text.setText(summary + "\n".join(info[:50]))  # Limit to first 50 files
+        else:
+            self.asset_info_text.setText("No assets found.")
+
+    def validate_scene(self):
+        """Validate the current scene for common issues."""
+        issues = []
+        
+        # Check for duplicate actor names
+        names = set()
+        for actor in self.scene.actors:
+            if actor.name in names:
+                issues.append(f"Duplicate actor name: {actor.name}")
+            names.add(actor.name)
+            
+            # Check for missing components
+            if not actor.components:
+                issues.append(f"Actor '{actor.name}' has no components.")
+            
+            # Check for actors with invalid transforms
+            if hasattr(actor, 'transform'):
+                pos = actor.transform.position
+                if not isinstance(pos, (tuple, list)) or len(pos) != 2:
+                    issues.append(f"Actor '{actor.name}' has invalid position: {pos}")
+                    
+                scale = actor.transform.scale
+                if not isinstance(scale, (tuple, list)) or len(scale) != 2:
+                    issues.append(f"Actor '{actor.name}' has invalid scale: {scale}")
+                    
+                if scale[0] <= 0 or scale[1] <= 0:
+                    issues.append(f"Actor '{actor.name}' has zero or negative scale: {scale}")
+        
+        # Check for UI elements with no name
+        ui_names = set()
+        for ui in getattr(self.scene, 'ui_elements', []):
+            name = getattr(ui, 'name', None)
+            if not name:
+                issues.append("UI element with missing name.")
+            elif name in ui_names:
+                issues.append(f"Duplicate UI element name: {name}")
+            else:
+                ui_names.add(name)
+                
+            # Check UI element rect validity
+            if hasattr(ui, 'rect'):
+                rect = ui.rect
+                if rect.width <= 0 or rect.height <= 0:
+                    issues.append(f"UI element '{name}' has invalid size: {rect.width}x{rect.height}")
+        
+        # Check for circular parent relationships
+        for actor in self.scene.actors:
+            if self._has_circular_parent(actor):
+                issues.append(f"Actor '{actor.name}' has circular parent relationship.")
+        
+        # Display results
+        if issues:
+            self.validator_text.setText(f"Found {len(issues)} issues:\n\n" + "\n".join(issues))
+        else:
+            self.validator_text.setText("✓ No issues found. Scene is valid.")
+    
+    def _has_circular_parent(self, actor: Actor) -> bool:
+        """Check if an actor has a circular parent relationship."""
+        visited = set()
+        current = actor.parent
+        
+        while current:
+            if current in visited:
+                return True
+            visited.add(current)
+            current = current.parent
+            
+        return False
 
 
 def main():
