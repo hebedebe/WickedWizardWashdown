@@ -79,7 +79,6 @@ class AssetManager:
         # Try to find the file
         image_path = self._findAssetFile(self.imagePath, name, self.imageFormats)
         if not image_path:
-            print(f"Could not find image: {name}")
             Logger.warning(f"Could not find image: {name}")
             return None
             
@@ -95,7 +94,6 @@ class AssetManager:
             return surface
             
         except pygame.error as e:
-            print(f"Could not load image {name}: {e}")
             Logger.error(f"Could not load image {name}: {e}")
             return None
             
@@ -107,7 +105,6 @@ class AssetManager:
             
         sound_path = self._findAssetFile(self.soundPath, name, self.soundFormats)
         if not sound_path:
-            print(f"Could not find sound: {name}")
             Logger.warning(f"Could not find sound: {name}")
             return None
             
@@ -118,7 +115,6 @@ class AssetManager:
             return sound
             
         except pygame.error as e:
-            print(f"Could not load sound {name}: {e}")
             Logger.error(f"Could not load sound {name}: {e}")
             return None
             
@@ -140,7 +136,6 @@ class AssetManager:
         # Try loading from file
         font_path = self._findAssetFile(self.fontPath, name, self.fontFormats)
         if not font_path:
-            print(f"Could not find font: {name}, using default")
             Logger.warning(f"Could not find font: {name}, using default")
             font = pygame.font.Font(None, size)
             self.fonts[font_key] = font
@@ -154,7 +149,6 @@ class AssetManager:
             return font
             
         except pygame.error as e:
-            print(f"Could not load font {name}: {e}, using default")
             Logger.error(f"Could not load font {name}: {e}, using default")
             font = pygame.font.Font(None, size)
             self.fonts[font_key] = font
@@ -171,7 +165,6 @@ class AssetManager:
             data_path = data_path.with_suffix('.json')
             
         if not data_path.exists():
-            print(f"Could not find data file: {name}")
             Logger.warning(f"Could not find data file: {name}")
             return None
             
@@ -182,7 +175,6 @@ class AssetManager:
             return data
             
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Could not load data {name}: {e}")
             Logger.error(f"Could not load data {name}: {e}")
             return None
             
