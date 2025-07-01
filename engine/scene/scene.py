@@ -50,6 +50,8 @@ class Scene:
         """Add an actor to the scene."""
         if actor.name in self.actor_lookup:
             Logger.warning(f"Actor with name '{actor.name}' already exists in the scene.")
+
+        actor.scene = self  # Set the scene reference in the actor
         
         self.actors.append(actor)
         self.actor_lookup[actor.name] = actor
@@ -64,6 +66,8 @@ class Scene:
         """Remove an actor from the scene."""
         if actor.name not in self.actor_lookup:
             raise ValueError(f"Actor with name '{actor.name}' does not exist in the scene.")
+        
+        actor.scene = None  # Clear the scene reference in the actor
         
         self.actors.remove(actor)
         del self.actor_lookup[actor.name]

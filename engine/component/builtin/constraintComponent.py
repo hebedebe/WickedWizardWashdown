@@ -10,28 +10,28 @@ class ConstraintComponent(Component):
         self.constraint = constraint
         self._enabled = True
 
-    def start(self, actor):
+    def start(self):
         # Add the constraint to the scene's physics space
-        scene = actor.scene
+        scene = self.actor.scene
         if scene and hasattr(scene, 'physicsSpace') and self._enabled:
             scene.physicsSpace.add(self.constraint)
 
-    def onRemoved(self, actor):
-        scene = actor.scene
+    def onRemoved(self):
+        scene = self.actor.scene
         if scene and hasattr(scene, 'physicsSpace'):
             if self.constraint in scene.physicsSpace.constraints:
                 scene.physicsSpace.remove(self.constraint)
 
-    def onEnabled(self, actor):
+    def onEnabled(self):
         self._enabled = True
-        scene = actor.scene
+        scene = self.actor.scene
         if scene and hasattr(scene, 'physicsSpace'):
             if self.constraint not in scene.physicsSpace.constraints:
                 scene.physicsSpace.add(self.constraint)
 
-    def onDisabled(self, actor):
+    def onDisabled(self):
         self._enabled = False
-        scene = actor.scene
+        scene = self.actor.scene
         if scene and hasattr(scene, 'physicsSpace'):
             if self.constraint in scene.physicsSpace.constraints:
                 scene.physicsSpace.remove(self.constraint)

@@ -41,6 +41,8 @@ class Actor:
         self.components = []
         self.transform = Transform()
         
+        self.scene = None  # Reference to the scene this actor belongs to
+
         # Parent-child relationships
         self.parent: 'Actor' = None
         self.children: list['Actor'] = []
