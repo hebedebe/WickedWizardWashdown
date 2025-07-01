@@ -1,0 +1,63 @@
+{
+  "actors": [
+    {
+      "name": "this is a test child actor",
+      "tags": [],
+      "components": [
+        {
+          "module": "engine.component.builtin.textComponent",
+          "type": "TextComponent",
+          "enabled": true,
+          "text": "wow thanks text i love you!!",
+          "font_name": null,
+          "font_size": 24,
+          "color": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "background_color": null,
+          "antialias": true,
+          "visible": true,
+          "align_x": "center",
+          "align_y": "center",
+          "offset": {
+            "__type__": "Vector2",
+            "value": [
+              0.0,
+              0.0
+            ]
+          },
+          "rotation_offset": 0.0,
+          "word_wrap": false,
+          "max_width": null,
+          "line_spacing": 0,
+          "_last_text": "",
+          "_last_color": {
+            "__type__": "Color",
+            "value": [
+              0,
+              0,
+              0,
+              255
+            ]
+          }
+        }
+      ],
+      "parent_name": "test actor",
+      "children_names": []
+    },
+    {
+      "name": "test actor",
+      "tags": [],
+      "components": [],
+      "parent_name": null,
+      "children_names": [
+        "this is a test child actor"
+      ]
+    }
+  ],
+  "active": true,
+  "paused": false
+}
