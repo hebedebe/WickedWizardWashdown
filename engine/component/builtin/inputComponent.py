@@ -135,7 +135,6 @@ class InputComponent(Component):
                             binding['action']()
                             handled = True
                         except Exception as e:
-                            print(f"Error in key binding for key {key}: {e}")
                             Logger.error(f"Error in key binding for key {key}: {e}")
                             
         elif event.type == pygame.KEYUP:
@@ -148,7 +147,6 @@ class InputComponent(Component):
                             binding['action']()
                             handled = True
                         except Exception as e:
-                            print(f"Error in key binding for key {key}: {e}")
                             Logger.error(f"Error in key binding for key {key}: {e}")
                             
         return handled and self.consume_events
@@ -176,7 +174,6 @@ class InputComponent(Component):
                             binding['action']()
                             handled = True
                         except Exception as e:
-                            print(f"Error in mouse binding for button {button}: {e}")
                             Logger.error(f"Error in mouse binding for button {button}: {e}")
                             
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -190,7 +187,6 @@ class InputComponent(Component):
                             binding['action']()
                             handled = True
                         except Exception as e:
-                            print(f"Error in mouse binding for button {button}: {e}")
                             Logger.error(f"Error in mouse binding for button {button}: {e}")
                             
         return handled and self.consume_events

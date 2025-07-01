@@ -26,7 +26,7 @@ class Scene:
 
         # UI Management
         from .. import Game
-        self.uiManager = UIManager((Game().width, Game().height))
+        self.uiManager = UIManager((Game._instance.width, Game._instance.height))
 
     def addPhysics(self, actor: Actor):
         physicsComponent = actor.getComponent(PhysicsComponent)
@@ -49,7 +49,6 @@ class Scene:
     def addActor(self, actor: Actor):
         """Add an actor to the scene."""
         if actor.name in self.actor_lookup:
-            print(f"WARN: Actor with name '{actor.name}' already exists in the scene.")
             Logger.warning(f"Actor with name '{actor.name}' already exists in the scene.")
         
         self.actors.append(actor)

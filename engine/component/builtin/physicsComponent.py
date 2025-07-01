@@ -10,6 +10,12 @@ class PhysicsComponent(Component):
         self.body = body
         self.shapes = [*shapes]
 
+    def start(self):
+        from ... import Game
+        Game._instance.currentScene.addPhysics(self.actor)
+        self.body.position = (*self.actor.transform.position,)
+        return super().start()
+
     def update(self, delta_time):
         self.body.position = (*self.actor.transform.position,)
         return super().update(delta_time)

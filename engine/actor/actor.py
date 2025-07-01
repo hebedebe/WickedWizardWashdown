@@ -52,8 +52,8 @@ class Actor:
     def addComponent(self, component) -> None:
         """Add a component to the actor."""
         assert component not in self.components, "Component already exists in actor"
-        component.setActor(self)
         self.components.append(component)
+        component.setActor(self)
 
     def removeComponent(self, component) -> None:
         """Remove a component from the actor."""
