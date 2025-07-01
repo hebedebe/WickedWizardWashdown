@@ -40,6 +40,11 @@ class UIManager:
         """Update all widgets."""
         for widget in self.root_widgets:
             widget.update(dt)
+
+    def lateUpdate(self, dt: float) -> None:
+        """Late update for all widgets."""
+        for widget in self.root_widgets:
+            widget.late_update(dt)
             
     def handleEvent(self, event: pygame.event.Event) -> bool:
         """Handle events for all widgets."""

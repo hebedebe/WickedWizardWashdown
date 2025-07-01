@@ -1,10 +1,12 @@
 import pygame
 import time
 from typing import Dict, List, Optional, Callable, Tuple
+import pymunk
 
 from ..actor.actor import Actor
 from ..ui.uiManager import UIManager
 from engine.logger import Logger, LogType
+from ..component.builtin.physicsComponent import PhysicsComponent
 
 class Scene:
     def __init__(self):
@@ -18,9 +20,31 @@ class Scene:
         self.active = True
         self.paused = False
 
+        # Physics
+        self.physicsSpace = pymunk.Space()
+        self.physicsSpace.gravity = (0, 900)
+
         # UI Management
         from .. import Game
         self.uiManager = UIManager((Game().width, Game().height))
+
+    def addPhysics(self, actor: Actor):
+        physicsComponent = actor.getComponent(PhysicsComponent)
+        if not physicsComponent:
+            Logger.warning(f"Actor {actor.name} does not have a PhysicsComponent.")
+            return
+
+        self.physicsSpace.add(physicsComponent.body, *physicsComponent.shapes)
+        Logger.debug(f"Added actor {actor.name} to physics space.")
+
+    def removePhysics(self, actor: Actor):
+        physicsComponent = actor.getComponent(PhysicsComponent)
+        if not physicsComponent:
+            Logger.warning(f"Actor {actor.name} does not have a PhysicsComponent.")
+            return
+
+        self.physicsSpace.remove(physicsComponent.body, *physicsComponent.shapes)
+        Logger.debug(f"Removed actor {actor.name} from physics space.")
 
     def addActor(self, actor: Actor):
         """Add an actor to the scene."""
@@ -79,6 +103,22 @@ class Scene:
 
         # Update UI Manager
         self.uiManager.update(dt)
+
+    def physicsUpdate(self, dt: float):
+        """Update the physics simulation."""
+        self.physicsSpace.step(dt)
+
+    def lateUpdate(self, dt: float):
+        """Late update the scene."""
+        if not self.active or self.paused:
+            return
+        
+        # Update all actors
+        for actor in self.actors:
+            actor.handleLateUpdate(dt)
+
+        # Update UI Manager
+        self.uiManager.lateUpdate(dt)
 
     def render(self, surface: pygame.Surface):
         """Render the scene."""

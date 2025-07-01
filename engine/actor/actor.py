@@ -115,9 +115,23 @@ class Actor:
         # Update the actor's own state
         self.update(dt)
 
+    def handleLateUpdate(self, dt: float) -> None:
+        """Handle the late update logic for the actor."""
+        # Update all components in late update phase
+        for component in self.components:
+            if component.enabled:
+                component.lateUpdate(dt)
+        # Perform any late update logic for the actor itself
+        self.lateUpdate(dt)
+
     def update(self, dt: float) -> None:
         """Update the actor's state."""
         # Update logic for the actor
+        pass
+
+    def lateUpdate(self, dt: float) -> None:
+        """Late update logic for the actor."""
+        # Late update logic for the actor
         pass
 
     def handleRender(self, surface) -> None:
