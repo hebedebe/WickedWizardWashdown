@@ -27,6 +27,18 @@ class Scene:
         # UI Management
         from .. import Game
         self.uiManager = UIManager((Game._instance.width, Game._instance.height))
+        
+        # Lambda scripts for scene lifecycle events
+        self.lambda_scripts: Dict[str, List[str]] = {
+            'onEnter': [],
+            'onExit': [],
+            'onPause': [],
+            'onResume': [],
+            'update': [],
+            'lateUpdate': [],
+            'preRender': [],
+            'postRender': []
+        }
 
     def addPhysics(self, actor: Actor):
         physicsComponent = actor.getComponent(PhysicsComponent)
@@ -45,6 +57,57 @@ class Scene:
 
         self.physicsSpace.remove(physicsComponent.body, *physicsComponent.shapes)
         Logger.debug(f"Removed actor {actor.name} from physics space.")
+
+    def add_lambda_script(self, event_type: str, script: str) -> None:
+        """Add a lambda script for a scene lifecycle event."""
+        if event_type in self.lambda_scripts:
+            self.lambda_scripts[event_type].append(script)
+        else:
+            print(f"Warning: Unknown scene event type '{event_type}'. Available: {list(self.lambda_scripts.keys())}")
+            
+    def remove_lambda_script(self, event_type: str, script: str) -> None:
+        """Remove a specific lambda script from a scene lifecycle event."""
+        if event_type in self.lambda_scripts and script in self.lambda_scripts[event_type]:
+            self.lambda_scripts[event_type].remove(script)
+            
+    def clear_lambda_scripts(self, event_type: str) -> None:
+        """Clear all lambda scripts for a scene lifecycle event."""
+        if event_type in self.lambda_scripts:
+            self.lambda_scripts[event_type].clear()
+            
+    def execute_lambda_scripts(self, event_type: str, **kwargs) -> None:
+        """Execute all lambda scripts for a specific event type."""
+        if event_type in self.lambda_scripts:
+            for script in self.lambda_scripts[event_type]:
+                try:
+                    # Create a safe execution environment
+                    safe_globals = {
+                        '__builtins__': {
+                            'print': print,
+                            'len': len,
+                            'str': str,
+                            'int': int,
+                            'float': float,
+                            'bool': bool,
+                            'min': min,
+                            'max': max,
+                            'abs': abs,
+                            'round': round,
+                        },
+                        'scene': self,
+                        'actors': self.actors,
+                        'actor_lookup': self.actor_lookup,
+                        'actors_by_tag': self.actors_by_tag,
+                        'pygame': pygame,
+                        **kwargs  # Additional context like dt, surface, etc.
+                    }
+                    
+                    # Execute the lambda script
+                    exec(script, safe_globals)
+                    
+                except Exception as e:
+                    print(f"Error executing lambda script for {event_type}: {e}")
+                    print(f"Script: {script}")
 
     def addActor(self, actor: Actor):
         """Add an actor to the scene."""
@@ -81,24 +144,27 @@ class Scene:
 
     def onEnter(self):
         """Called when the scene is entered."""
-        pass
+        self.execute_lambda_scripts('onEnter')
 
     def onExit(self):
         """Called when the scene is exited."""
-        pass
+        self.execute_lambda_scripts('onExit')
 
     def onPause(self):
         """Called when the scene is paused."""
-        pass
+        self.execute_lambda_scripts('onPause')
 
     def onResume(self):
         """Called when the scene is resumed."""
-        pass
+        self.execute_lambda_scripts('onResume')
 
     def update(self, dt: float):
         """Update the scene."""
         if not self.active or self.paused:
             return
+        
+        # Execute lambda scripts for update
+        self.execute_lambda_scripts('update', dt=dt)
         
         # Update all actors
         for actor in self.actors:
@@ -122,16 +188,26 @@ class Scene:
 
         # Update UI Manager
         self.uiManager.lateUpdate(dt)
+        
+        # Execute lambda scripts for late update
+        self.execute_lambda_scripts('lateUpdate', dt=dt)
 
     def render(self, surface: pygame.Surface):
         """Render the scene."""
         if not self.active or self.paused:
             return
+            
+        # Execute pre-render lambda scripts
+        self.execute_lambda_scripts('preRender', surface=surface)
+        
         for actor in self.actors:
             actor.handleRender(surface)
 
         # Render UI
         self.uiManager.render(surface)
+        
+        # Execute post-render lambda scripts
+        self.execute_lambda_scripts('postRender', surface=surface)
 
     def handleEvent(self, event: pygame.event.Event):
         """Handle an event."""
@@ -150,7 +226,8 @@ class Scene:
         return {
             "actors": [actor.serialize() for actor in self.actors],
             "active": self.active,
-            "paused": self.paused
+            "paused": self.paused,
+            "lambda_scripts": self.lambda_scripts
         }
     
     def deserialize(self, data: dict) -> None:
@@ -176,6 +253,18 @@ class Scene:
         # Restore scene state
         self.active = data.get("active", True)
         self.paused = data.get("paused", False)
+        
+        # Restore lambda scripts
+        self.lambda_scripts = data.get("lambda_scripts", {
+            'onEnter': [],
+            'onExit': [],
+            'onPause': [],
+            'onResume': [],
+            'update': [],
+            'lateUpdate': [],
+            'preRender': [],
+            'postRender': []
+        })
     
     @staticmethod
     def createFromSerializedData(data: dict) -> 'Scene':
