@@ -439,7 +439,10 @@ class InspectorWidget(QWidget):
             self.title_label.setText(f"Inspector - {self.current_object.__class__.__name__}")
             
         # Add basic properties
-        self._add_basic_properties()
+        if isinstance(self.current_object, Actor):
+            self._add_actor_properties()
+        else:
+            self._add_basic_properties()
         
         # Add component properties for actors
         if isinstance(self.current_object, Actor):
@@ -512,6 +515,59 @@ class InspectorWidget(QWidget):
                         
             self.properties_layout.addWidget(comp_group)
             
+    def _add_actor_properties(self):
+        """Add specialized Actor properties with better handling."""
+        if not isinstance(self.current_object, Actor):
+            return
+            
+        # Actor Basic Properties
+        actor_group = QGroupBox("Actor Properties")
+        actor_layout = QFormLayout(actor_group)
+        
+        # Name property
+        name_widget = StringPropertyWidget("name", {"type": str})
+        name_widget.set_value(self.current_object.name)
+        name_widget.value_changed.connect(lambda val: self._on_property_changed("name", val))
+        self.property_widgets["name"] = name_widget
+        actor_layout.addRow("Name", name_widget)
+        
+        # Tags property (as comma-separated string)
+        tags_widget = StringPropertyWidget("tags", {"type": str})
+        tags_str = ", ".join(self.current_object.tags) if self.current_object.tags else ""
+        tags_widget.set_value(tags_str)
+        tags_widget.value_changed.connect(lambda val: self._on_tags_changed(val))
+        self.property_widgets["tags"] = tags_widget
+        actor_layout.addRow("Tags", tags_widget)
+        
+        self.properties_layout.addWidget(actor_group)
+        
+        # Transform Properties
+        transform_group = QGroupBox("Transform")
+        transform_layout = QFormLayout(transform_group)
+        
+        # Position
+        position_widget = Vector2PropertyWidget("position", {"type": tuple})
+        position_widget.set_value(self.current_object.transform.position)
+        position_widget.value_changed.connect(lambda val: self._on_transform_changed("position", val))
+        self.property_widgets["transform.position"] = position_widget
+        transform_layout.addRow("Position", position_widget)
+        
+        # Rotation
+        rotation_widget = FloatPropertyWidget("rotation", {"type": float})
+        rotation_widget.set_value(self.current_object.transform.rotation)
+        rotation_widget.value_changed.connect(lambda val: self._on_transform_changed("rotation", val))
+        self.property_widgets["transform.rotation"] = rotation_widget
+        transform_layout.addRow("Rotation", rotation_widget)
+        
+        # Scale
+        scale_widget = Vector2PropertyWidget("scale", {"type": tuple})
+        scale_widget.set_value(self.current_object.transform.scale)
+        scale_widget.value_changed.connect(lambda val: self._on_transform_changed("scale", val))
+        self.property_widgets["transform.scale"] = scale_widget
+        transform_layout.addRow("Scale", scale_widget)
+        
+        self.properties_layout.addWidget(transform_group)
+        
     def _add_lambda_scripts(self):
         """Add lambda script editing for widgets."""
         if not hasattr(self.current_object, 'lambda_scripts'):
@@ -578,6 +634,26 @@ class InspectorWidget(QWidget):
         """Handle lambda script changes."""
         if hasattr(self.current_object, 'lambda_scripts'):
             self.current_object.lambda_scripts[event_type] = new_script
-            # Mark scene as dirty
-            if hasattr(self.current_object, 'scene') and self.current_object.scene:
-                self.current_object.scene.mark_dirty()
+            # Emit property changed signal to mark scene as dirty
+            self.property_changed.emit(self.current_object, 'lambda_scripts', self.current_object.lambda_scripts)
+                
+    def _on_tags_changed(self, tags_str: str):
+        """Handle tags property change."""
+        if self.current_object:
+            # Parse comma-separated tags
+            tags = set()
+            if tags_str.strip():
+                tags = {tag.strip() for tag in tags_str.split(",") if tag.strip()}
+            self.current_object.tags = tags
+            self.property_changed.emit(self.current_object, "tags", tags)
+    
+    def _on_transform_changed(self, property_name: str, new_value):
+        """Handle transform property changes."""
+        if self.current_object and hasattr(self.current_object, 'transform'):
+            if property_name == "position":
+                self.current_object.transform.position = new_value
+            elif property_name == "rotation":
+                self.current_object.transform.rotation = new_value
+            elif property_name == "scale":
+                self.current_object.transform.scale = new_value
+            self.property_changed.emit(self.current_object, f"transform.{property_name}", new_value)
