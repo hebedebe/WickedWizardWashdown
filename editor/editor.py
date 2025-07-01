@@ -60,9 +60,25 @@ class EditorScene:
         self.actor_lookup: Dict[str, Actor] = {}  # By name
         self.actors_by_tag: Dict[str, List[Actor]] = {}
         
+        # UI element management
+        self.ui_elements: List[Widget] = []
+        self.ui_lookup: Dict[str, Widget] = {}  # By name
+        
         # Scene state
         self.active = True
         self.paused = False
+        
+        # Lambda scripts for scene lifecycle events
+        self.lambda_scripts: Dict[str, List[str]] = {
+            'onEnter': [],
+            'onExit': [],
+            'onPause': [],
+            'onResume': [],
+            'update': [],
+            'lateUpdate': [],
+            'preRender': [],
+            'postRender': []
+        }
 
     def addActor(self, actor: Actor):
         """Add an actor to the scene."""
@@ -102,20 +118,110 @@ class EditorScene:
                 if not self.actors_by_tag[tag]:
                     del self.actors_by_tag[tag]
 
+    def addUIElement(self, ui_element: Widget):
+        """Add a UI element to the scene."""
+        if ui_element.name in self.ui_lookup:
+            # Handle duplicate names by appending a number
+            base_name = ui_element.name
+            counter = 1
+            while f"{base_name}_{counter}" in self.ui_lookup:
+                counter += 1
+            ui_element.name = f"{base_name}_{counter}"
+        
+        self.ui_elements.append(ui_element)
+        self.ui_lookup[ui_element.name] = ui_element
+
+    def removeUIElement(self, ui_element: Widget):
+        """Remove a UI element from the scene."""
+        if ui_element.name not in self.ui_lookup:
+            raise ValueError(f"UI element with name '{ui_element.name}' does not exist in the scene.")
+        
+        self.ui_elements.remove(ui_element)
+        del self.ui_lookup[ui_element.name]
+        
+    def add_lambda_script(self, event_type: str, script: str) -> None:
+        """Add a lambda script for a scene lifecycle event."""
+        if event_type in self.lambda_scripts:
+            self.lambda_scripts[event_type].append(script)
+        else:
+            print(f"Warning: Unknown scene event type '{event_type}'. Available: {list(self.lambda_scripts.keys())}")
+            
+    def remove_lambda_script(self, event_type: str, script: str) -> None:
+        """Remove a specific lambda script from a scene lifecycle event."""
+        if event_type in self.lambda_scripts and script in self.lambda_scripts[event_type]:
+            self.lambda_scripts[event_type].remove(script)
+            
+    def clear_lambda_scripts(self, event_type: str) -> None:
+        """Clear all lambda scripts for a scene lifecycle event."""
+        if event_type in self.lambda_scripts:
+            self.lambda_scripts[event_type].clear()
+            
+    def execute_lambda_scripts(self, event_type: str, **kwargs) -> None:
+        """Execute all lambda scripts for a specific event type."""
+        if event_type in self.lambda_scripts:
+            for script in self.lambda_scripts[event_type]:
+                try:
+                    # Create a safe execution environment
+                    safe_globals = {
+                        '__builtins__': {
+                            'print': print,
+                            'len': len,
+                            'str': str,
+                            'int': int,
+                            'float': float,
+                            'bool': bool,
+                            'min': min,
+                            'max': max,
+                            'abs': abs,
+                            'round': round,
+                        },
+                        'scene': self,
+                        'actors': self.actors,
+                        'actor_lookup': self.actor_lookup,
+                        'actors_by_tag': self.actors_by_tag,
+                        'ui_elements': self.ui_elements,
+                        'ui_lookup': self.ui_lookup,
+                        **kwargs  # Additional context like dt, surface, etc.
+                    }
+                    
+                    # Execute the lambda script
+                    exec(script, safe_globals)
+                    
+                except Exception as e:
+                    print(f"Error executing lambda script for {event_type}: {e}")
+                    print(f"Script: {script}")
+
     def serialize(self) -> dict:
         """Serialize the scene to a dictionary."""
         return {
             "actors": [actor.serialize() for actor in self.actors],
+            "ui_elements": [self._serializeUIElement(ui) for ui in self.ui_elements],
             "active": self.active,
-            "paused": self.paused
+            "paused": self.paused,
+            "lambda_scripts": self.lambda_scripts
         }
+    
+    def _serializeUIElement(self, ui_element: Widget) -> dict:
+        """Serialize a UI element."""
+        data = {
+            "name": ui_element.name,
+            "type": ui_element.__class__.__name__,
+            "module": ui_element.__class__.__module__,
+            "rect": [ui_element.rect.x, ui_element.rect.y, ui_element.rect.width, ui_element.rect.height],
+            "visible": ui_element.visible,
+            "enabled": ui_element.enabled,
+            "lambda_scripts": ui_element.lambda_scripts
+        }
+        return data
     
     def deserialize(self, data: dict) -> None:
         """Deserialize the scene from a dictionary."""
-        # Clear current actors
+        # Clear current actors and UI elements
         self.actors.clear()
         self.actor_lookup.clear() 
         self.actors_by_tag.clear()
+        self.ui_elements.clear()
+        self.ui_lookup.clear()
         
         # Deserialize actors
         new_actors = []
@@ -130,9 +236,32 @@ class EditorScene:
         for actor in new_actors:
             self.addActor(actor)
         
+        # Deserialize UI elements
+        for ui_data in data.get("ui_elements", []):
+            ui_element = self._deserializeUIElement(ui_data)
+            if ui_element:
+                self.addUIElement(ui_element)
+        
         # Restore scene state
         self.active = data.get("active", True)
         self.paused = data.get("paused", False)
+    
+    def _deserializeUIElement(self, data: dict) -> Optional[Widget]:
+        """Deserialize a UI element."""
+        try:
+            import pygame
+            rect_data = data.get("rect", [0, 0, 100, 30])
+            rect = pygame.Rect(rect_data[0], rect_data[1], rect_data[2], rect_data[3])
+            
+            # Create basic widget for now - this could be expanded to support specific types
+            ui_element = Widget(rect, data.get("name", "UIElement"))
+            ui_element.visible = data.get("visible", True)
+            ui_element.enabled = data.get("enabled", True)
+            
+            return ui_element
+        except Exception as e:
+            print(f"Failed to deserialize UI element: {e}")
+            return None
 
 
 @dataclass
@@ -274,6 +403,17 @@ class ComponentRegistry:
                         issubclass(obj, Component) and 
                         obj != Component):
                         
+                        # Skip complex constraint components that require runtime setup
+                        skip_components = {
+                            'ConstraintComponent', 'DampedSpringComponent', 
+                            'PinJointComponent', 'PivotJointComponent', 
+                            'PhysicsComponent'  # Requires pymunk setup
+                        }
+                        
+                        if name in skip_components:
+                            print(f"Skipping complex component: {name} (requires runtime setup)")
+                            continue
+                        
                         info = ComponentInfo(
                             name=name,
                             class_type=obj,
@@ -289,30 +429,36 @@ class ComponentRegistry:
     def _loadBuiltinUIElements(self):
         """Load built-in UI elements."""
         builtin_path = Path(__file__).parent.parent / "engine" / "ui" / "builtin"
-        for py_file in builtin_path.glob("*.py"):
-            if py_file.name.startswith("__"):
-                continue
-                
-            try:
-                module_name = f"engine.ui.builtin.{py_file.stem}"
-                module = importlib.import_module(module_name)
-                
-                for name, obj in inspect.getmembers(module):
-                    if (inspect.isclass(obj) and 
-                        issubclass(obj, Widget) and 
-                        obj != Widget):
-                        
-                        info = UIElementInfo(
-                            name=name,
-                            class_type=obj,
-                            module_path=module_name,
-                            description=obj.__doc__ or "",
-                            category="Built-in"
-                        )
-                        self.ui_elements[name] = info
-                        
-            except Exception as e:
-                print(f"Failed to load UI element from {py_file}: {e}")
+        
+        # Don't add the abstract Widget class - it can't be instantiated
+        # self.ui_elements["Widget"] = UIElementInfo(...)
+        
+        # Try to load from builtin directory
+        if builtin_path.exists():
+            for py_file in builtin_path.glob("*.py"):
+                if py_file.name.startswith("__"):
+                    continue
+                    
+                try:
+                    module_name = f"engine.ui.builtin.{py_file.stem}"
+                    module = importlib.import_module(module_name)
+                    
+                    for name, obj in inspect.getmembers(module):
+                        if (inspect.isclass(obj) and 
+                            issubclass(obj, Widget) and 
+                            obj != Widget):
+                            
+                            info = UIElementInfo(
+                                name=name,
+                                class_type=obj,
+                                module_path=module_name,
+                                description=obj.__doc__ or "",
+                                category="Built-in"
+                            )
+                            self.ui_elements[name] = info
+                            
+                except Exception as e:
+                    print(f"Failed to load UI element from {py_file}: {e}")
     
     def loadCustomModule(self, filepath: str):
         """Load custom components/UI elements from a Python file."""
@@ -358,15 +504,82 @@ class ComponentRegistry:
         
     def createComponent(self, name: str) -> Optional[Component]:
         if name in self.components:
-            return self.components[name].class_type()
+            component_class = self.components[name].class_type
+            
+            try:
+                # Handle different component constructor patterns
+                if name == "CircleRendererComponent":
+                    import pygame
+                    return component_class(radius=50, color=pygame.Color(255, 255, 255))
+                elif name == "SpriteComponent":
+                    return component_class(sprite_name="default", tint_color=None)
+                elif name == "TextComponent":
+                    return component_class(text="Text", font_name=None, font_size=24)
+                elif name == "AudioComponent":
+                    return component_class(sound_name=None, volume=1.0, loop=False)
+                elif name == "InputComponent":
+                    return component_class()
+                elif name == "PhysicsComponent":
+                    # PhysicsComponent requires pymunk objects, which are complex to create
+                    print(f"PhysicsComponent requires complex setup (pymunk body and shapes), skipping for now")
+                    return None
+                elif name == "ConstraintComponent":
+                    # ConstraintComponent requires actors and constraints, complex to create
+                    print(f"ConstraintComponent requires complex setup (actors and constraints), skipping for now")
+                    return None
+                else:
+                    # Default constructor (no arguments)
+                    return component_class()
+                    
+            except Exception as e:
+                print(f"Failed to create component {name}: {e}")
+                print(f"Component class: {component_class}")
+                # Try default constructor as fallback
+                try:
+                    return component_class()
+                except Exception as e2:
+                    print(f"Fallback constructor also failed: {e2}")
+                    return None
         return None
         
     def createUIElement(self, name: str) -> Optional[Widget]:
         if name in self.ui_elements:
-            # Most UI elements require a rect parameter
-            from PyQt6.QtCore import QRect
             import pygame
-            return self.ui_elements[name].class_type(pygame.Rect(0, 0, 100, 30))
+            
+            # Initialize pygame.font if not already done
+            if not pygame.font.get_init():
+                pygame.font.init()
+            
+            default_rect = pygame.Rect(0, 0, 100, 30)
+            element_class = self.ui_elements[name].class_type
+            
+            try:
+                # Try different constructor patterns for different UI elements
+                if name == "Button":
+                    return element_class(default_rect, text="Button", name=f"New{name}")
+                elif name == "Label":
+                    return element_class(default_rect, text="Label", name=f"New{name}")
+                elif name == "Panel":
+                    return element_class(default_rect, name=f"New{name}")
+                elif name == "TextInput":
+                    return element_class(default_rect, name=f"New{name}")
+                elif name == "Slider":
+                    return element_class(default_rect, name=f"New{name}")
+                elif name == "Widget":
+                    # Widget is abstract, use Panel instead
+                    print("Widget is abstract, creating Panel instead")
+                    panel_class = self.ui_elements.get("Panel")
+                    if panel_class:
+                        return panel_class.class_type(default_rect, name=f"NewPanel")
+                    return None
+                else:
+                    # Default pattern for unknown types
+                    return element_class(default_rect, name=f"New{name}")
+                    
+            except Exception as e:
+                print(f"Failed to create UI element {name}: {e}")
+                print(f"Element class: {element_class}")
+                return None
         return None
 
 
@@ -390,7 +603,14 @@ class PropertyEditor(QWidget):
         """Refresh the property editor with current target properties."""
         # Clear existing widgets
         for widget in self.property_widgets.values():
-            widget.deleteLater()
+            if isinstance(widget, tuple):
+                # Handle tuple widgets (like position, scale)
+                for w in widget:
+                    if hasattr(w, 'deleteLater'):
+                        w.deleteLater()
+            else:
+                if hasattr(widget, 'deleteLater'):
+                    widget.deleteLater()
         self.property_widgets.clear()
         
         # Clear layout
@@ -485,6 +705,22 @@ class PropertyEditor(QWidget):
         self.layout.addRow("Scale:", scale_widget)
         self.property_widgets["scale"] = (scale_x, scale_y)
         
+        # Add custom properties section
+        custom_label = QLabel("Custom Properties")
+        custom_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+        self.layout.addRow(custom_label)
+        
+        # Add custom properties from actor's __dict__
+        for prop_name, value in actor.__dict__.items():
+            if self._shouldSkipProperty(prop_name, value):
+                continue
+                
+            # Skip properties we already handled
+            if prop_name in ['name', 'tags', 'transform', 'components', 'scene', 'parent', 'children']:
+                continue
+                
+            self._addGenericProperty(prop_name, value)
+        
     def _addComponentProperties(self):
         """Add properties for Component objects."""
         component = self.target
@@ -498,16 +734,11 @@ class PropertyEditor(QWidget):
         
         # Add custom properties from component's __dict__
         for prop_name, value in component.__dict__.items():
-            if prop_name in ["actor", "enabled"]:
+            if self._shouldSkipProperty(prop_name, value):
                 continue
                 
             self._addGenericProperty(prop_name, value)
             
-    def _addTransformProperties(self):
-        """Add properties for Transform objects."""
-        # Similar to actor transform properties but for standalone transform
-        pass
-        
     def _addUIElementProperties(self):
         """Add properties for UI Widget objects."""
         widget = self.target
@@ -532,8 +763,144 @@ class PropertyEditor(QWidget):
         self.layout.addRow("Enabled:", enabled_check)
         self.property_widgets["enabled"] = enabled_check
         
+        # Rect properties
+        rect_label = QLabel("Rectangle")
+        rect_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+        self.layout.addRow(rect_label)
+        
+        # Position
+        pos_x = QSpinBox()
+        pos_x.setRange(-9999, 9999)
+        pos_x.setValue(widget.rect.x)
+        pos_x.valueChanged.connect(lambda v: self._onRectChanged("x", v))
+        
+        pos_y = QSpinBox()
+        pos_y.setRange(-9999, 9999)
+        pos_y.setValue(widget.rect.y)
+        pos_y.valueChanged.connect(lambda v: self._onRectChanged("y", v))
+        
+        pos_widget = QWidget()
+        pos_layout = QHBoxLayout(pos_widget)
+        pos_layout.addWidget(QLabel("X:"))
+        pos_layout.addWidget(pos_x)
+        pos_layout.addWidget(QLabel("Y:"))
+        pos_layout.addWidget(pos_y)
+        pos_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.layout.addRow("Position:", pos_widget)
+        self.property_widgets["rect_pos"] = (pos_x, pos_y)
+        
+        # Size
+        width_spin = QSpinBox()
+        width_spin.setRange(1, 9999)
+        width_spin.setValue(widget.rect.width)
+        width_spin.valueChanged.connect(lambda v: self._onRectChanged("width", v))
+        
+        height_spin = QSpinBox()
+        height_spin.setRange(1, 9999)
+        height_spin.setValue(widget.rect.height)
+        height_spin.valueChanged.connect(lambda v: self._onRectChanged("height", v))
+        
+        size_widget = QWidget()
+        size_layout = QHBoxLayout(size_widget)
+        size_layout.addWidget(QLabel("W:"))
+        size_layout.addWidget(width_spin)
+        size_layout.addWidget(QLabel("H:"))
+        size_layout.addWidget(height_spin)
+        size_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.layout.addRow("Size:", size_widget)
+        self.property_widgets["rect_size"] = (width_spin, height_spin)
+        
+        # Add other widget properties
+        for prop_name, value in widget.__dict__.items():
+            if self._shouldSkipProperty(prop_name, value):
+                continue
+                
+            # Skip properties we already handled
+            if prop_name in ['name', 'visible', 'enabled', 'rect', 'lambda_scripts']:
+                continue
+                
+            self._addGenericProperty(prop_name, value)
+            
+        # Add lambda scripts section (read-only info, editing done in Scripts tab)
+        if hasattr(widget, 'lambda_scripts') and widget.lambda_scripts:
+            scripts_label = QLabel("Lambda Scripts (edit in Scripts tab)")
+            scripts_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+            self.layout.addRow(scripts_label)
+            
+            for event_type, script in widget.lambda_scripts.items():
+                script_preview = script[:30] + "..." if len(script) > 30 else script
+                script_label = QLabel(script_preview)
+                script_label.setStyleSheet("color: #666; font-style: italic;")
+                self.layout.addRow(f"{event_type}:", script_label)
+    
+    def _shouldSkipProperty(self, prop_name: str, value: Any) -> bool:
+        """Check if a property should be skipped in the inspector."""
+        # Skip private/internal properties
+        if prop_name.startswith('_'):
+            return True
+            
+        # Skip common non-serializable properties
+        skip_properties = {
+            "actor", "enabled", "parent", "children", "scene", 
+            "rect", "name", "visible", "state", "mouse_inside", 
+            "mouse_pressed", "event_handlers", "font", "lambda_scripts"
+        }
+        if prop_name in skip_properties:
+            return True
+            
+        # Skip non-serializable types
+        if callable(value):
+            return True
+            
+        # Skip None values
+        if value is None:
+            return True
+            
+        # Skip Qt objects and other complex types
+        if hasattr(value, '__module__') and value.__module__:
+            module = value.__module__
+            if any(skip in module for skip in ['PyQt', 'pygame.font', 'pygame.surface']):
+                return True
+            
+        # Skip complex objects that don't have basic serializable types
+        if hasattr(value, '__dict__') and not isinstance(value, (str, int, float, bool, list, tuple, dict)):
+            # Allow pygame.Color objects though
+            if hasattr(value, '__class__') and value.__class__.__name__ not in ['Color', 'Rect', 'Vector2']:
+                return True
+            
+        # Skip very large collections
+        if isinstance(value, (list, tuple, dict)) and len(value) > 20:
+            return True
+            
+        return False
+        
     def _addGenericProperty(self, name: str, value: Any):
         """Add a generic property editor based on value type."""
+        # Handle pygame.Color objects
+        if hasattr(value, '__class__') and value.__class__.__name__ == 'Color':
+            self._addColorProperty(name, value)
+            return
+            
+        # Handle tuple colors (r, g, b) or (r, g, b, a)
+        if isinstance(value, tuple) and len(value) in [3, 4] and all(isinstance(x, int) and 0 <= x <= 255 for x in value):
+            self._addTupleColorProperty(name, value)
+            return
+            
+        # Handle lists that might be colors
+        if isinstance(value, list) and len(value) in [3, 4] and all(isinstance(x, int) and 0 <= x <= 255 for x in value):
+            self._addTupleColorProperty(name, tuple(value))
+            return
+            
+        # Handle dictionaries with color-like structures
+        if isinstance(value, dict) and all(key in ['r', 'g', 'b'] or key in ['r', 'g', 'b', 'a'] for key in value.keys()):
+            color_tuple = (value.get('r', 0), value.get('g', 0), value.get('b', 0))
+            if 'a' in value:
+                color_tuple += (value['a'],)
+            self._addTupleColorProperty(name, color_tuple)
+            return
+            
         if isinstance(value, bool):
             widget = QCheckBox()
             widget.setChecked(value)
@@ -555,6 +922,11 @@ class PropertyEditor(QWidget):
             widget = QLineEdit(value)
             widget.textChanged.connect(lambda text: self._onPropertyChanged(name, value, text))
             
+        elif isinstance(value, (list, tuple)) and len(value) <= 10:
+            # Handle small lists/tuples as comma-separated values
+            widget = QLineEdit(str(value))
+            widget.textChanged.connect(lambda text: self._onPropertyChanged(name, value, text))
+            
         else:
             # For complex types, use text representation
             widget = QLineEdit(str(value))
@@ -562,6 +934,102 @@ class PropertyEditor(QWidget):
             
         self.layout.addRow(f"{name}:", widget)
         self.property_widgets[name] = widget
+        
+    def _addColorProperty(self, name: str, color):
+        """Add a color property with R, G, B, A components."""
+        color_label = QLabel(f"{name} Color")
+        color_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
+        self.layout.addRow(color_label)
+        
+        # R component
+        r_spin = QSpinBox()
+        r_spin.setRange(0, 255)
+        r_spin.setValue(color.r)
+        r_spin.valueChanged.connect(lambda v: self._onColorChanged(name, "r", v))
+        
+        # G component
+        g_spin = QSpinBox()
+        g_spin.setRange(0, 255)
+        g_spin.setValue(color.g)
+        g_spin.valueChanged.connect(lambda v: self._onColorChanged(name, "g", v))
+        
+        # B component
+        b_spin = QSpinBox()
+        b_spin.setRange(0, 255)
+        b_spin.setValue(color.b)
+        b_spin.valueChanged.connect(lambda v: self._onColorChanged(name, "b", v))
+        
+        # A component
+        a_spin = QSpinBox()
+        a_spin.setRange(0, 255)
+        a_spin.setValue(color.a)
+        a_spin.valueChanged.connect(lambda v: self._onColorChanged(name, "a", v))
+        
+        color_widget = QWidget()
+        color_layout = QHBoxLayout(color_widget)
+        color_layout.addWidget(QLabel("R:"))
+        color_layout.addWidget(r_spin)
+        color_layout.addWidget(QLabel("G:"))
+        color_layout.addWidget(g_spin)
+        color_layout.addWidget(QLabel("B:"))
+        color_layout.addWidget(b_spin)
+        color_layout.addWidget(QLabel("A:"))
+        color_layout.addWidget(a_spin)
+        color_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.layout.addRow("RGBA:", color_widget)
+        self.property_widgets[f"{name}_color"] = (r_spin, g_spin, b_spin, a_spin)
+        
+    def _addTupleColorProperty(self, name: str, color_tuple):
+        """Add a tuple color property with R, G, B, (A) components."""
+        color_label = QLabel(f"{name} Color")
+        color_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
+        self.layout.addRow(color_label)
+        
+        # R component
+        r_spin = QSpinBox()
+        r_spin.setRange(0, 255)
+        r_spin.setValue(color_tuple[0])
+        r_spin.valueChanged.connect(lambda v: self._onTupleColorChanged(name, 0, v))
+        
+        # G component
+        g_spin = QSpinBox()
+        g_spin.setRange(0, 255)
+        g_spin.setValue(color_tuple[1])
+        g_spin.valueChanged.connect(lambda v: self._onTupleColorChanged(name, 1, v))
+        
+        # B component
+        b_spin = QSpinBox()
+        b_spin.setRange(0, 255)
+        b_spin.setValue(color_tuple[2])
+        b_spin.valueChanged.connect(lambda v: self._onTupleColorChanged(name, 2, v))
+        
+        color_widget = QWidget()
+        color_layout = QHBoxLayout(color_widget)
+        color_layout.addWidget(QLabel("R:"))
+        color_layout.addWidget(r_spin)
+        color_layout.addWidget(QLabel("G:"))
+        color_layout.addWidget(g_spin)
+        color_layout.addWidget(QLabel("B:"))
+        color_layout.addWidget(b_spin)
+        
+        widgets = [r_spin, g_spin, b_spin]
+        
+        # A component if it exists
+        if len(color_tuple) == 4:
+            a_spin = QSpinBox()
+            a_spin.setRange(0, 255)
+            a_spin.setValue(color_tuple[3])
+            a_spin.valueChanged.connect(lambda v: self._onTupleColorChanged(name, 3, v))
+            color_layout.addWidget(QLabel("A:"))
+            color_layout.addWidget(a_spin)
+            widgets.append(a_spin)
+        
+        color_layout.setContentsMargins(0, 0, 0, 0)
+        
+        label = "RGBA:" if len(color_tuple) == 4 else "RGB:"
+        self.layout.addRow(label, color_widget)
+        self.property_widgets[f"{name}_color"] = tuple(widgets)
         
     def _onPropertyChanged(self, prop_name: str, old_value: Any, new_value: Any):
         """Handle property changes."""
@@ -602,6 +1070,58 @@ class PropertyEditor(QWidget):
             new_scale[index] = value
             transform.scale = tuple(new_scale)
             self.propertyChanged.emit("transform.scale", old_scale, transform.scale)
+            
+    def _onRectChanged(self, prop_type: str, value: int):
+        """Handle rect property changes."""
+        if not (self.target and hasattr(self.target, "rect")):
+            return
+            
+        old_rect = self.target.rect.copy()
+        
+        if prop_type == "x":
+            self.target.rect.x = value
+        elif prop_type == "y":
+            self.target.rect.y = value
+        elif prop_type == "width":
+            self.target.rect.width = value
+        elif prop_type == "height":
+            self.target.rect.height = value
+            
+        self.propertyChanged.emit(f"rect.{prop_type}", old_rect, self.target.rect.copy())
+        
+    def _onColorChanged(self, prop_name: str, component: str, value: int):
+        """Handle pygame Color property changes."""
+        if not self.target or not hasattr(self.target, prop_name):
+            return
+            
+        color = getattr(self.target, prop_name)
+        old_color = color.copy() if hasattr(color, 'copy') else color
+        
+        if component == "r":
+            color.r = value
+        elif component == "g":
+            color.g = value
+        elif component == "b":
+            color.b = value
+        elif component == "a":
+            color.a = value
+            
+        self.propertyChanged.emit(f"{prop_name}.{component}", old_color, color)
+        
+    def _onTupleColorChanged(self, prop_name: str, index: int, value: int):
+        """Handle tuple color property changes."""
+        if not self.target or not hasattr(self.target, prop_name):
+            return
+            
+        color_tuple = getattr(self.target, prop_name)
+        old_color = color_tuple
+        
+        new_color = list(color_tuple)
+        new_color[index] = value
+        new_color = tuple(new_color)
+        
+        setattr(self.target, prop_name, new_color)
+        self.propertyChanged.emit(f"{prop_name}[{index}]", old_color, new_color)
 
 
 class ActorTreeWidget(QTreeWidget):
@@ -775,6 +1295,8 @@ class ComponentListWidget(QWidget):
 class UIElementManager(QWidget):
     """Widget for managing UI elements in the scene."""
     
+    uiElementSelected = pyqtSignal(Widget)
+    
     def __init__(self, registry: ComponentRegistry):
         super().__init__()
         self.registry = registry
@@ -803,7 +1325,12 @@ class UIElementManager(QWidget):
         list_layout = QVBoxLayout(list_group)
         
         self.ui_list = QListWidget()
+        self.ui_list.itemSelectionChanged.connect(self._onSelectionChanged)
         list_layout.addWidget(self.ui_list)
+        
+        remove_button = QPushButton("Remove UI Element")
+        remove_button.clicked.connect(self._onRemoveUIElement)
+        list_layout.addWidget(remove_button)
         
         layout.addWidget(list_group)
         
@@ -818,17 +1345,46 @@ class UIElementManager(QWidget):
         if not self.scene:
             return
             
-        # Note: This would need to be adapted based on how UI elements are stored in your scene
-        # For now, assuming they're in scene.uiManager
-        
+        for ui_element in self.scene.ui_elements:
+            item = QListWidgetItem(f"{ui_element.name} ({ui_element.__class__.__name__})")
+            item.setData(Qt.ItemDataRole.UserRole, ui_element)
+            self.ui_list.addItem(item)
+            
     def _onAddUIElement(self):
         """Handle adding a new UI element."""
         element_name = self.ui_combo.currentText()
         if element_name and self.scene:
+            print(f"Attempting to create UI element: {element_name}")
             element = self.registry.createUIElement(element_name)
             if element:
-                # Add to scene's UI manager
-                pass
+                print(f"Successfully created {element_name}: {element}")
+                self.scene.addUIElement(element)
+                self.refreshUIElements()
+                print(f"UI element added to scene. Total UI elements: {len(self.scene.ui_elements)}")
+            else:
+                print(f"Failed to create UI element: {element_name}")
+                print(f"Available UI elements: {self.registry.getUIElementNames()}")
+                # Try to add basic Widget as fallback
+                import pygame
+                fallback_widget = Widget(pygame.Rect(0, 0, 100, 30), name=f"Widget_{len(self.scene.ui_elements)}")
+                self.scene.addUIElement(fallback_widget)
+                self.refreshUIElements()
+                print(f"Added fallback Widget instead")
+                
+    def _onRemoveUIElement(self):
+        """Handle removing a UI element."""
+        current_item = self.ui_list.currentItem()
+        if current_item and self.scene:
+            ui_element = current_item.data(Qt.ItemDataRole.UserRole)
+            self.scene.removeUIElement(ui_element)
+            self.refreshUIElements()
+            
+    def _onSelectionChanged(self):
+        """Handle UI element selection changes."""
+        current_item = self.ui_list.currentItem()
+        if current_item:
+            ui_element = current_item.data(Qt.ItemDataRole.UserRole)
+            self.uiElementSelected.emit(ui_element)
 
 
 class ImportDialog(QDialog):
@@ -874,6 +1430,234 @@ class ImportDialog(QDialog):
             
     def getFilePath(self) -> str:
         return self.file_edit.text()
+
+
+class LambdaScriptManager(QWidget):
+    """Widget for managing lambda scripts."""
+    
+    def __init__(self):
+        super().__init__()
+        self.scene = None
+        self.target_object = None  # Either Scene or Widget
+        self.setupUI()
+        
+    def setupUI(self):
+        layout = QVBoxLayout(self)
+        
+        # Target selection
+        target_group = QGroupBox("Script Target")
+        target_layout = QVBoxLayout(target_group)
+        
+        self.target_label = QLabel("No target selected")
+        target_layout.addWidget(self.target_label)
+        
+        layout.addWidget(target_group)
+        
+        # Event type selection
+        event_group = QGroupBox("Event Type")
+        event_layout = QVBoxLayout(event_group)
+        
+        self.event_combo = QComboBox()
+        event_layout.addWidget(self.event_combo)
+        
+        layout.addWidget(event_group)
+        
+        # Script list
+        scripts_group = QGroupBox("Lambda Scripts")
+        scripts_layout = QVBoxLayout(scripts_group)
+        
+        self.scripts_list = QListWidget()
+        scripts_layout.addWidget(self.scripts_list)
+        
+        # Script editor
+        self.script_editor = QTextEdit()
+        self.script_editor.setPlaceholderText("Enter Python code here...\n\nExamples:\n- print('Hello World!')\n- widget.visible = not widget.visible\n- actors[0].transform.position = (100, 100)")
+        self.script_editor.setMaximumHeight(150)
+        scripts_layout.addWidget(self.script_editor)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        add_button = QPushButton("Add Script")
+        add_button.clicked.connect(self._onAddScript)
+        button_layout.addWidget(add_button)
+        
+        update_button = QPushButton("Update Script")
+        update_button.clicked.connect(self._onUpdateScript)
+        button_layout.addWidget(update_button)
+        
+        remove_button = QPushButton("Remove Script")
+        remove_button.clicked.connect(self._onRemoveScript)
+        button_layout.addWidget(remove_button)
+        
+        test_button = QPushButton("Test Script")
+        test_button.clicked.connect(self._onTestScript)
+        button_layout.addWidget(test_button)
+        
+        scripts_layout.addLayout(button_layout)
+        layout.addWidget(scripts_group)
+        
+        # Connect selection changes
+        self.event_combo.currentTextChanged.connect(self._onEventChanged)
+        self.scripts_list.itemSelectionChanged.connect(self._onScriptSelected)
+        
+    def setScene(self, scene):
+        """Set the scene for lambda script management."""
+        self.scene = scene
+        self.setTarget(scene, "Scene")
+        
+    def setTarget(self, target_object, target_name: str):
+        """Set the target object for lambda script editing."""
+        self.target_object = target_object
+        self.target_label.setText(f"Target: {target_name}")
+        
+        # Update event combo based on target type
+        self.event_combo.clear()
+        if hasattr(target_object, 'lambda_scripts'):
+            if isinstance(target_object, Widget):
+                # UI Widget events
+                self.event_combo.addItems(['click', 'hover', 'focus', 'custom'])
+            else:
+                # Scene events
+                self.event_combo.addItems(list(target_object.lambda_scripts.keys()))
+        
+        self._refreshScripts()
+        
+    def _refreshScripts(self):
+        """Refresh the scripts list."""
+        self.scripts_list.clear()
+        
+        if not self.target_object or not hasattr(self.target_object, 'lambda_scripts'):
+            return
+            
+        event_type = self.event_combo.currentText()
+        if not event_type:
+            return
+            
+        if isinstance(self.target_object, Widget):
+            # For widgets, lambda_scripts is a Dict[str, str]
+            if event_type in self.target_object.lambda_scripts:
+                script = self.target_object.lambda_scripts[event_type]
+                item = QListWidgetItem(script[:50] + "..." if len(script) > 50 else script)
+                item.setData(Qt.ItemDataRole.UserRole, script)
+                self.scripts_list.addItem(item)
+        else:
+            # For scenes, lambda_scripts is a Dict[str, List[str]]
+            if event_type in self.target_object.lambda_scripts:
+                for i, script in enumerate(self.target_object.lambda_scripts[event_type]):
+                    display_text = f"{i+1}: {script[:40]}..." if len(script) > 40 else f"{i+1}: {script}"
+                    item = QListWidgetItem(display_text)
+                    item.setData(Qt.ItemDataRole.UserRole, script)
+                    self.scripts_list.addItem(item)
+                    
+    def _onEventChanged(self):
+        """Handle event type change."""
+        self._refreshScripts()
+        self.script_editor.clear()
+        
+    def _onScriptSelected(self):
+        """Handle script selection."""
+        current_item = self.scripts_list.currentItem()
+        if current_item:
+            script = current_item.data(Qt.ItemDataRole.UserRole)
+            self.script_editor.setPlainText(script)
+            
+    def _onAddScript(self):
+        """Handle adding a new script."""
+        script = self.script_editor.toPlainText().strip()
+        if not script:
+            return
+            
+        event_type = self.event_combo.currentText()
+        if not event_type:
+            return
+            
+        if isinstance(self.target_object, Widget):
+            # For widgets, replace the script
+            self.target_object.add_lambda_script(event_type, script)
+        else:
+            # For scenes, add to the list
+            self.target_object.add_lambda_script(event_type, script)
+            
+        self._refreshScripts()
+        self.script_editor.clear()
+        
+    def _onUpdateScript(self):
+        """Handle updating an existing script."""
+        current_item = self.scripts_list.currentItem()
+        if not current_item:
+            return
+            
+        script = self.script_editor.toPlainText().strip()
+        if not script:
+            return
+            
+        event_type = self.event_combo.currentText()
+        old_script = current_item.data(Qt.ItemDataRole.UserRole)
+        
+        if isinstance(self.target_object, Widget):
+            # For widgets, just replace
+            self.target_object.add_lambda_script(event_type, script)
+        else:
+            # For scenes, remove old and add new
+            self.target_object.remove_lambda_script(event_type, old_script)
+            self.target_object.add_lambda_script(event_type, script)
+            
+        self._refreshScripts()
+        
+    def _onRemoveScript(self):
+        """Handle removing a script."""
+        current_item = self.scripts_list.currentItem()
+        if not current_item:
+            return
+            
+        event_type = self.event_combo.currentText()
+        script = current_item.data(Qt.ItemDataRole.UserRole)
+        
+        if isinstance(self.target_object, Widget):
+            self.target_object.remove_lambda_script(event_type)
+        else:
+            self.target_object.remove_lambda_script(event_type, script)
+            
+        self._refreshScripts()
+        self.script_editor.clear()
+        
+    def _onTestScript(self):
+        """Handle testing a script."""
+        script = self.script_editor.toPlainText().strip()
+        if not script:
+            return
+            
+        try:
+            if isinstance(self.target_object, Widget):
+                self.target_object.execute_lambda_script('custom', None)
+            else:
+                # Create a test environment for scene scripts
+                safe_globals = {
+                    '__builtins__': {
+                        'print': print,
+                        'len': len,
+                        'str': str,
+                        'int': int,
+                        'float': float,
+                        'bool': bool,
+                        'min': min,
+                        'max': max,
+                        'abs': abs,
+                        'round': round,
+                    },
+                    'scene': self.target_object,
+                    'actors': getattr(self.target_object, 'actors', []),
+                    'actor_lookup': getattr(self.target_object, 'actor_lookup', {}),
+                    'actors_by_tag': getattr(self.target_object, 'actors_by_tag', {}),
+                }
+                
+                exec(script, safe_globals)
+                
+            print(f"✓ Script executed successfully")
+            
+        except Exception as e:
+            print(f"✗ Script error: {e}")
 
 
 class SceneEditor(QMainWindow):
@@ -959,7 +1743,13 @@ class SceneEditor(QMainWindow):
         
         # UI Elements tab
         self.ui_manager = UIElementManager(self.registry)
+        self.ui_manager.setScene(self.scene)
         right_panel.addTab(self.ui_manager, "UI Elements")
+        
+        # Lambda Scripts tab
+        self.lambda_manager = LambdaScriptManager()
+        self.lambda_manager.setScene(self.scene)
+        right_panel.addTab(self.lambda_manager, "Scripts")
         
         # Tools tab (placeholder for future tools)
         tools_widget = QWidget()
@@ -1082,6 +1872,9 @@ class SceneEditor(QMainWindow):
         self.component_manager.componentSelected.connect(self.onComponentSelected)
         self.component_manager.componentAdded.connect(self.onComponentAdded)
         
+        # UI manager connections
+        self.ui_manager.uiElementSelected.connect(self.onUIElementSelected)
+        
         # Property editor connections
         self.property_editor.propertyChanged.connect(self.onPropertyChanged)
         
@@ -1156,6 +1949,11 @@ class SceneEditor(QMainWindow):
         self.is_modified = False
         self.undo_stack.clear()
         
+        # Update all components with new scene
+        self.actor_tree.setScene(self.scene)
+        self.ui_manager.setScene(self.scene)
+        self.lambda_manager.setScene(self.scene)
+        
         self.refreshAll()
         self.setModified(False)
         self.status_bar.showMessage("New scene created")
@@ -1195,6 +1993,11 @@ class SceneEditor(QMainWindow):
             self.current_file = filename
             self.is_modified = False
             self.undo_stack.clear()
+            
+            # Update all components with new scene
+            self.actor_tree.setScene(self.scene)
+            self.ui_manager.setScene(self.scene)
+            self.lambda_manager.setScene(self.scene)
             
             self.settings.addRecentFile(filename)
             self.updateRecentFilesMenu()
@@ -1369,13 +2172,33 @@ class SceneEditor(QMainWindow):
         """Handle component selection."""
         self.property_editor.setTarget(component)
         
+    def onUIElementSelected(self, ui_element: Widget):
+        """Handle UI element selection."""
+        self.property_editor.setTarget(ui_element)
+        self.lambda_manager.setTarget(ui_element, f"UI: {ui_element.name}")
+        
     def onComponentAdded(self, component_name: str):
         """Handle component addition."""
+        if not self.component_manager.actor:
+            self.status_bar.showMessage("No actor selected to add component to")
+            return
+            
+        print(f"Attempting to create component: {component_name}")
         component = self.registry.createComponent(component_name)
-        if component and self.component_manager.actor:
+        
+        if component:
+            print(f"Successfully created {component_name}: {component}")
             self.component_manager.actor.addComponent(component)
             self.component_manager.refreshComponents()
             self.setModified(True)
+            self.status_bar.showMessage(f"Added {component_name} to {self.component_manager.actor.name}")
+        else:
+            print(f"Failed to create component: {component_name}")
+            self.status_bar.showMessage(f"Failed to create component: {component_name}")
+            
+            # Show available components for debugging
+            available = self.registry.getComponentNames()
+            print(f"Available components: {available}")
             
     def onPropertyChanged(self, prop_name: str, old_value: Any, new_value: Any):
         """Handle property changes."""
@@ -1396,6 +2219,7 @@ class SceneEditor(QMainWindow):
         self.refreshActorTree()
         self.refreshInspector()
         self.refreshComponents()
+        self.refreshUIElements()
         
     def refreshActorTree(self):
         """Refresh the actor tree."""
@@ -1408,6 +2232,10 @@ class SceneEditor(QMainWindow):
     def refreshComponents(self):
         """Refresh the component manager."""
         self.component_manager.refreshComponents()
+        
+    def refreshUIElements(self):
+        """Refresh the UI elements manager."""
+        self.ui_manager.refreshUIElements()
         
     # Window events
     def closeEvent(self, event):
