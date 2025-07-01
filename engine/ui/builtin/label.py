@@ -1,7 +1,7 @@
 import pygame
 from typing import Dict, List, Optional, Callable, Any, Tuple
 
-from ..widget import Widget
+from engine.ui.widget import Widget
 
 class Label(Widget):
     """

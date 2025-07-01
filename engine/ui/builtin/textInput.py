@@ -1,5 +1,5 @@
 import pygame
-from ..widget import Widget
+from engine.ui.widget import Widget
 
 class TextInput(Widget):
     """
