@@ -4,3 +4,4 @@ from .spriteComponent import SpriteComponent
 from .textComponent import TextComponent
 from .physicsComponent import PhysicsComponent
 from .circleRendererComponent import CircleRendererComponent
+from .constraintComponent import *
