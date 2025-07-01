@@ -37,6 +37,9 @@ class Widget(ABC):
         # Event handlers
         self.event_handlers: Dict[str, List[Callable]] = {}
         
+        # Lambda scripts for events (serializable as strings)
+        self.lambda_scripts: Dict[str, str] = {}
+        
         # Input state
         self.mouse_inside = False
         self.mouse_pressed = False
@@ -77,9 +80,51 @@ class Widget(ABC):
             if handler in self.event_handlers[event_type]:
                 self.event_handlers[event_type].remove(handler)
                 
+    def add_lambda_script(self, event_type: str, script: str) -> None:
+        """Add a lambda script for an event type."""
+        self.lambda_scripts[event_type] = script
+        
+    def remove_lambda_script(self, event_type: str) -> None:
+        """Remove a lambda script for an event type."""
+        if event_type in self.lambda_scripts:
+            del self.lambda_scripts[event_type]
+            
+    def execute_lambda_script(self, event_type: str, event_data: Any = None) -> None:
+        """Execute a lambda script if it exists for the event type."""
+        if event_type in self.lambda_scripts:
+            script = self.lambda_scripts[event_type]
+            try:
+                # Create a safe execution environment
+                safe_globals = {
+                    '__builtins__': {
+                        'print': print,
+                        'len': len,
+                        'str': str,
+                        'int': int,
+                        'float': float,
+                        'bool': bool,
+                        'min': min,
+                        'max': max,
+                        'abs': abs,
+                        'round': round,
+                    },
+                    'widget': self,
+                    'event_data': event_data,
+                    'pygame': pygame,
+                }
+                
+                # Execute the lambda script
+                exec(script, safe_globals)
+                
+            except Exception as e:
+                print(f"Error executing lambda script for {event_type} in {self.name}: {e}")
+        
     def emit_event(self, event_type: str, data: Any = None) -> None:
         """Emit a UI event."""
         event = UIEvent(event_type, self, data)
+        
+        # Execute lambda script first
+        self.execute_lambda_script(event_type, data)
         
         # Call local handlers
         if event_type in self.event_handlers:
