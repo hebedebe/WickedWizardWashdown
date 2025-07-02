@@ -5,7 +5,7 @@ from engine.component.component import Component
 from engine.logger import Logger
 
 class PhysicsComponent(Component):
-    def __init__(self, body, shapes):
+    def __init__(self, body=None, shapes=[]):
         super().__init__()
         self.body = body
         self.shapes = [*shapes]
