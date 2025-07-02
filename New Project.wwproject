@@ -1,0 +1,22 @@
+{
+  "name": "New Project",
+  "active_scene": "test",
+  "scenes": {
+    "test": {
+      "name": "test",
+      "file_path": "C:\\Users\\s242289\\git\\WickedWizardWashdown\\test.scene",
+      "is_dirty": false
+    }
+  },
+  "settings": {
+    "version": "1.0",
+    "last_opened_scenes": [],
+    "custom_component_paths": [],
+    "custom_widget_paths": [],
+    "editor_settings": {
+      "auto_save": true,
+      "auto_save_interval": 300,
+      "backup_count": 5
+    }
+  }
+}

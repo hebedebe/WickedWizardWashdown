@@ -10,6 +10,10 @@ import pygame
 # Add engine to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+class DummyScene:
+    def addPhysics(self, actor=None):
+        return
+
 class DummyGame:
     """Dummy Game class that doesn't require pygame initialization."""
     
@@ -20,7 +24,8 @@ class DummyGame:
         self.height = 1080
         self.running = False
         self.scenes = {}
-        self.current_scene = None
+        # self.current_scene = None
+        self.currentScene = DummyScene()
         
     @classmethod
     def getInstance(cls):

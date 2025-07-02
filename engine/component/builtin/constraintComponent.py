@@ -3,7 +3,7 @@ from engine.component.component import Component
 from engine.component.builtin.physicsComponent import PhysicsComponent
 
 class ConstraintComponent(Component):
-    def __init__(self, actor_a, actor_b, constraint):
+    def __init__(self, actor_a=None, actor_b=None, constraint=None):
         super().__init__()
         self.actor_a = actor_a
         self.actor_b = actor_b

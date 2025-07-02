@@ -5,6 +5,7 @@ Hierarchy widget for displaying and managing actors and UI elements in the scene
 import sys
 from pathlib import Path
 from typing import Optional, List, Any
+import logging
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem, 
@@ -23,6 +24,8 @@ from editor_scene import EditorScene
 from editor_utils import get_engine_components, get_engine_widgets
 from engine.actor.actor import Actor
 from engine.ui.widget import Widget
+
+logger = logging.getLogger(__name__)
 
 class DraggableTreeWidget(QTreeWidget):
     """Tree widget with drag and drop support for parenting."""
@@ -248,6 +251,7 @@ class HierarchyWidget(QWidget):
                     self.selection_changed.emit(actor)
                     
             except Exception as e:
+                logger.error(e)
                 QMessageBox.critical(self, "Error", f"Failed to add component:\n{str(e)}")
                 
     def _add_widget(self):
@@ -286,6 +290,7 @@ class HierarchyWidget(QWidget):
                 self._refresh_ui()
                 
             except Exception as e:
+                logger.error(e)
                 QMessageBox.critical(self, "Error", f"Failed to add widget:\n{str(e)}")
                 
     def _show_actor_context_menu(self, position: QPoint):
@@ -425,31 +430,49 @@ class HierarchyWidget(QWidget):
         self.selected_object = obj
         # TODO: Find and select the corresponding tree item
     
-    def _create_component_with_params(self, component_class, component_name):
+    def _create_component_with_params(self, component_class, component_name): ## TODO: FIX THIS!!!
         """Create a component with appropriate parameters based on its type."""
         import inspect
         import pygame
         
         # Get the constructor signature
+        params = []
+        default_values = []
+        needs_explicit_value = False
         try:
             sig = inspect.signature(component_class.__init__)
-            params = list(sig.parameters.keys())[1:]  # Skip 'self'
+            for key in list(sig.parameters.keys())[1:]:
+                default_param = sig.parameters[key].default
+                if default_param != inspect.Parameter.empty:
+                    param = sig.parameters[key]
+                    params.append(param)
+                    default_values.append(default_param)
+                else:
+                    needs_explicit_value = True
+            # params = list(sig.parameters.keys())[1:]  # Skip 'self'
         except Exception as e:
+            logger.warning(f"An internal error occurred creating a component: {e}")
             # Fallback for components without parameters
             params = []
-        
-        if not params:
-            # Component doesn't need parameters
-            return component_class()
-        
-        # Handle specific known components with custom dialogs
-        if component_name == "CircleRendererComponent":
-            return self._create_circle_renderer_component()
-        elif component_name == "PhysicsComponent":
+
+        logger.info(f"Component parameters: {params}")
+        logger.info(f"Component default values: {default_values}")
+        logger.info(f"Component needs explicit values: {needs_explicit_value}")
+
+        if component_name == 'PhysicsComponent':
             return self._create_physics_component()
+        
+        if not params and not default_values:
+            # Component doesn't need parameters
+            logger.info("Created component class with no parameters")
+            return component_class()
         else:
-            # Generic parameter dialog for other components
-            return self._create_generic_component(component_class, params)
+            if (needs_explicit_value):
+                logger.info("Created component class with explicit parameters")
+                return self._create_generic_component(component_class, params)
+            else:
+                logger.info("Created component class with default parameters")
+                return component_class(*default_values)
     
     def _create_circle_renderer_component(self):
         """Create CircleRendererComponent with radius and color parameters."""
@@ -591,6 +614,7 @@ class HierarchyWidget(QWidget):
                 args = [inputs[param].text() for param in params]
                 return component_class(*args)
             except Exception as e:
+                logger.error(e)
                 QMessageBox.critical(self, "Error", f"Failed to create component:\n{str(e)}")
                 return None
         

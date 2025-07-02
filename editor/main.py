@@ -9,6 +9,7 @@ import os
 import traceback
 import logging
 from pathlib import Path
+import pygame
 
 # Add the parent directory to sys.path so we can import the engine
 parent_dir = Path(__file__).parent.parent
@@ -17,6 +18,8 @@ sys.path.insert(0, str(parent_dir))
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QDir, qInstallMessageHandler, QtMsgType
 from PyQt6.QtGui import QIcon
+
+import qdarktheme
 
 from editor_main_window import EditorMainWindow
 from editor_utils import setup_logging, show_error_with_logging
@@ -67,7 +70,8 @@ def main():
         # Create the QApplication
         app = QApplication(sys.argv)
 
-        app.setStyle("windows")
+        qdarktheme.setup_theme()
+        # app.setStyle("fusion")
 
         app.setApplicationName("Wicked Wizard Washdown Scene Editor")
         app.setApplicationVersion("1.0.0")
@@ -97,6 +101,8 @@ def main():
         return 1
 
 if __name__ == "__main__":
+    pygame.init()
+    
     # Install the global exception handler
     sys.excepthook = global_exception_handler
     

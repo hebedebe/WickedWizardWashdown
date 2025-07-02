@@ -340,6 +340,7 @@ class EditorMainWindow(QMainWindow):
                 logger.info(f"Opened project: {file_path}")
                 
             except Exception as e:
+                logger.error(e)
                 show_error("Error", f"Failed to open project:\n{str(e)}", self)
                 
     def _save_project(self):
@@ -358,6 +359,7 @@ class EditorMainWindow(QMainWindow):
             logger.info("Project saved")
             
         except Exception as e:
+            logger.error(e)
             show_error("Error", f"Failed to save project:\n{str(e)}", self)
             
     def _save_project_as(self):
@@ -377,6 +379,7 @@ class EditorMainWindow(QMainWindow):
                 logger.info(f"Project saved as: {file_path}")
                 
             except Exception as e:
+                logger.error(e)
                 show_error("Error", f"Failed to save project:\n{str(e)}", self)
                 
     def _new_scene(self):
@@ -408,6 +411,7 @@ class EditorMainWindow(QMainWindow):
                 logger.info(f"Imported scene: {file_path}")
                 
             except Exception as e:
+                logger.error(e)
                 show_error("Error", f"Failed to import scene:\n{str(e)}", self)
                 
     def _import_custom_components(self):
@@ -597,6 +601,7 @@ class EditorMainWindow(QMainWindow):
                 self._save_project()
                 logger.info("Auto-saved project")
             except Exception as e:
+                logger.error(e)
                 logger.error(f"Auto-save failed: {e}")
                 
     def closeEvent(self, event: QCloseEvent):
