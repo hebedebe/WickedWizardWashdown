@@ -51,7 +51,8 @@ class FPSDisplay(Label):
             self.current_fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0
             
             # Update text
-            self.set_text(f"FPS: {self.current_fps:.1f}")
+            from ... import Game
+            self.set_text(f"FPS: {Game._instance.clock.get_fps():.1f}")
             self.last_update = 0
             
     def get_fps(self) -> float:
