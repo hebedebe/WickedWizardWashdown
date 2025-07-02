@@ -22,7 +22,7 @@ def main():
 
     for actor in actors:
         actor.addComponent(PhysicsCircleComponent(radius=radius, bodyType=pymunk.Body.DYNAMIC))
-        actor.addComponent(DampedSpringComponent(actor, lastactor, rest_length=radius, stiffness=2000, damping=100))
+        actor.addComponent(DampedSpringComponent(actor, lastactor, rest_length=radius+5, stiffness=4000, damping=100))
         actor.addComponent(SpringRendererComponent(lastactor))
         actor.addComponent(PhysicsDragComponent(1000))
         lastactor = actor
