@@ -1,15 +1,15 @@
 import pygame
 from .. import Component
+from .constraintComponent import DampedSpringComponent
 
 class SpringRendererComponent(Component):
-    def __init__(self, get_other_actor, get_spring):
+    def __init__(self, other_actor):
         super().__init__()
-        self.get_other_actor = get_other_actor  # function returning the other actor
-        self.get_spring = get_spring  # function returning the spring constraint
+        self.other_actor = other_actor
 
     def render(self, surface):
-        other = self.get_other_actor()
-        spring = self.get_spring()
+        other = self.other_actor
+        spring = self.actor.getComponent(DampedSpringComponent)
         if not other or not spring:
             return
         pos1 = self.actor.transform.position

@@ -51,7 +51,7 @@ class PivotJointComponent(ConstraintComponent):
         super().__init__(actor_a, actor_b, constraint)
 
 class DampedSpringComponent(ConstraintComponent):
-    def __init__(self, actor_a, actor_b, anchor_a, anchor_b, rest_length, stiffness, damping):
+    def __init__(self, actor_a, actor_b, anchor_a=(0,0), anchor_b=(0,0), rest_length=100, stiffness=100, damping=10):
         body_a = actor_a.getComponent(PhysicsComponent).body
         body_b = actor_b.getComponent(PhysicsComponent).body
         constraint = pymunk.DampedSpring(body_a, body_b, anchor_a, anchor_b, rest_length, stiffness, damping)

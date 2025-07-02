@@ -36,7 +36,7 @@ class Transform:
         )
 
 class Actor:
-    def __init__(self, name: str = "Actor"):
+    def __init__(self, name: str = "Actor", components=[]):
         self.name = name
         self.tags = set()  # Using a set for unique tags
         self.components = []
@@ -48,6 +48,9 @@ class Actor:
         self.parent: 'Actor' = None
         self.children: list['Actor'] = []
 
+        for component in components: # done here so components are added properly
+            self.addComponent(component)
+
     def setName(self, name: str) -> None:
         """Set the name of the actor."""
         self.name = name
@@ -57,6 +60,11 @@ class Actor:
         assert component not in self.components, "Component already exists in actor"
         self.components.append(component)
         component.setActor(self)
+
+    def addComponents(self, *args) -> None:
+        """Add multiple components to the actor."""
+        for component in args:
+            self.addComponent(component)
 
     def removeComponent(self, component) -> None:
         """Remove a component from the actor."""

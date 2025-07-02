@@ -7,3 +7,4 @@ from .circleRendererComponent import CircleRendererComponent
 from .constraintComponent import *
 from .physicsDragComponent import PhysicsDragComponent
 from .springRendererComponent import SpringRendererComponent
+from .physicsCircleComponent import PhysicsCircleComponent

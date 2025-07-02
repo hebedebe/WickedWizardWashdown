@@ -125,6 +125,13 @@ class Scene:
                 self.actors_by_tag[tag] = []
             self.actors_by_tag[tag].append(actor)
 
+    def addActors(self, *actors):
+        """Add multiple actors to the scene."""
+        for actor in actors:
+            if not isinstance(actor, Actor):
+                raise TypeError(f"Expected Actor instance, got {type(actor).__name__}")
+            self.addActor(actor)
+
     def removeActor(self, actor: Actor):
         """Remove an actor from the scene."""
         if actor.name not in self.actor_lookup:
@@ -141,6 +148,14 @@ class Scene:
                 self.actors_by_tag[tag].remove(actor)
                 if not self.actors_by_tag[tag]:
                     del self.actors_by_tag[tag]
+
+    def addWidget(self, widget):
+        """Add a widget to the UI Manager."""
+        self.uiManager.addWidget(widget)
+
+    def removeWidget(self, widget):
+        """Remove a widget from the UI Manager."""
+        self.uiManager.removeWidget(widget)
 
     def onEnter(self):
         """Called when the scene is entered."""

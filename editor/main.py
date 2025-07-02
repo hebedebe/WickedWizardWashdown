@@ -70,8 +70,9 @@ def main():
         # Create the QApplication
         app = QApplication(sys.argv)
 
-        qdarktheme.setup_theme()
+        # qdarktheme.setup_theme()
         # app.setStyle("fusion")
+        app.setStyle("windows")
 
         app.setApplicationName("Wicked Wizard Washdown Scene Editor")
         app.setApplicationVersion("1.0.0")

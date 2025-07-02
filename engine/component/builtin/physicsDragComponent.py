@@ -1,14 +1,16 @@
 import pygame
+import math
+import pymunk
 from .physicsComponent import PhysicsComponent
 from .inputComponent import InputComponent
-import pymunk
 
 class PhysicsDragComponent(InputComponent):
-    def __init__(self):
+    def __init__(self, force=1000):
         super().__init__()
         self.dragging = False
         self.mouse_joint = None
         self.mouse_body = None
+        self.force = force
 
     def start(self):
         self.bind_mouse(1, self.on_mouse_down, on_press=True)
@@ -28,7 +30,7 @@ class PhysicsDragComponent(InputComponent):
             phys = self.actor.getComponent(PhysicsComponent)
             if phys:
                 self.mouse_joint = pymunk.PivotJoint(self.mouse_body, phys.body, (0,0), (0,0))
-                self.mouse_joint.max_force = 10000
+                self.mouse_joint.max_force = self.force
                 self.actor.scene.physicsSpace.add(self.mouse_body, self.mouse_joint)
 
     def on_mouse_up(self):
@@ -44,4 +46,4 @@ class PhysicsDragComponent(InputComponent):
         if self.dragging and self.mouse_body:
             mouse_pos = pygame.mouse.get_pos()
             self.mouse_body.position = mouse_pos
-            self.mouse_joint.max_force = abs(2000*(pygame.Vector2.distance_to(pygame.Vector2(mouse_pos), pygame.Vector2(self.actor.transform.position))))
+            self.mouse_joint.max_force = abs(self.force*math.log(pygame.Vector2.distance_to(pygame.Vector2(mouse_pos), pygame.Vector2(self.actor.transform.position))))
