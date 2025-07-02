@@ -5,3 +5,5 @@ from .textComponent import TextComponent
 from .physicsComponent import PhysicsComponent
 from .circleRendererComponent import CircleRendererComponent
 from .constraintComponent import *
+from .physicsDragComponent import PhysicsDragComponent
+from .springRendererComponent import SpringRendererComponent
