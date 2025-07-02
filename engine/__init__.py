@@ -1,7 +1,7 @@
 import pygame
 import time
 from typing import Dict, List, Optional, Callable
-from math import sin, cos, radians, degrees
+from math import sin, cos, radians, degrees, log
 
 from .actor.actor import Actor
 from .component import *
@@ -92,7 +92,7 @@ class Game:
         # Timing
         self.targetFps = 60
         self.deltaTime = 0.0
-        self.fixedTimestep = 1.0 / 60.0  # 60 FPS fixed timestep
+        self.fixedTimestep = 1.0 / self.targetFps  # 60 FPS fixed timestep
         self.accumulator = 0.0
         self.lastTime = time.time()
 
@@ -204,7 +204,7 @@ class Game:
 
                 self.accumulator -= self.fixedTimestep
 
-            self.deltaTime = frameTime
+            # self.deltaTime = frameTime
 
             # Render
             self.screen.fill(self.clearColour)  # Clear screen
@@ -213,7 +213,7 @@ class Game:
                 self.currentScene.render(self.screen)
                 
             pygame.display.flip()
-            self.clock.tick(self.targetFps)
+            self.deltaTime = self.clock.tick(self.targetFps)
             
         # Cleanup
         self.networkManager.disconnect()

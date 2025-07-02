@@ -1,13 +1,14 @@
+from pygame import Vector2
 
 class Transform:
-    def __init__(self, position=(0, 0), rotation=0, scale=(1, 1)):
+    def __init__(self, position=Vector2(0, 0), rotation=0, scale=Vector2(1, 1)):
         self.position = position  # (x, y)
         self.rotation = rotation  # in degrees
         self.scale = scale  # (scale_x, scale_y)
 
     def setPosition(self, x: float, y: float) -> None:
         """Set the position of the transform."""
-        self.position = (x, y)
+        self.position = Vector2(x, y)
 
     def setRotation(self, rotation: float) -> None:
         """Set the rotation of the transform."""
@@ -15,7 +16,7 @@ class Transform:
 
     def setScale(self, scale_x: float, scale_y: float) -> None:
         """Set the scale of the transform."""
-        self.scale = (scale_x, scale_y)
+        self.scale = Vector2(scale_x, scale_y)
 
     def serialize(self) -> dict:
         """Serialize the transform to a dictionary."""
