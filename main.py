@@ -48,7 +48,7 @@ def main():
     spritesheet = game.assetManager.loadImage("testanim")
     frames = game.assetManager.sliceSpritesheet("testanim", 16, 16)
     animationActor = Actor("test")
-    # animationActor.transform.position = pygame.Vector2(100, 100)
+    animationActor.transform.position = pygame.Vector2(100, 100)
     animationActor.addComponent(AnimationComponent(frames))
     scene.addActor(animationActor)
 
