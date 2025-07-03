@@ -6,9 +6,8 @@ from math import sin, cos, radians, degrees, log
 from .actor.actor import Actor
 from .component import *
 from .input.inputManager import InputManager
-from .networking import *
 from .resources.assetManager import AssetManager
-from .scene.scene import Scene
+from .scene import *
 from .ui import *
 from .logger import Logger, LogType
 
@@ -80,9 +79,6 @@ class Game:
         self.clock = pygame.time.Clock()
         self.inputManager = InputManager()
         self.assetManager = AssetManager()
-        
-        # Networking system
-        self.networkManager = NetworkManager()
         
         # Scene management
         self.scenes: Dict[str, 'Scene'] = {}

@@ -9,4 +9,4 @@ class CircleRendererComponent(Component):
         self.color = color
 
     def render(self, surface):
-        pygame.draw.circle(surface, self.color, self.actor.transform.position, self.radius)
+        pygame.draw.circle(surface, self.color, self.actor.screenPosition, self.radius)

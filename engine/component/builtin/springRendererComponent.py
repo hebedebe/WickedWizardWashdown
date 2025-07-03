@@ -32,4 +32,4 @@ class SpringRendererComponent(Component):
             # interpolate green to blue
             t = min(-stress / rest_length, 1)
             color = (0, int(255 * (1-t)), int(255 * t))
-        pygame.draw.line(surface, color, pos1, pos2, 4)
+        pygame.draw.line(surface, color, self.actor.screenPosition, other.screenPosition, 4)

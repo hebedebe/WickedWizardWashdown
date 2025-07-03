@@ -256,7 +256,7 @@ class TextComponent(Component):
             return
             
         # Calculate final position with offset
-        final_pos = self.actor.transform.position + self.offset
+        final_pos = self.actor.screenPosition + self.offset
         
         # Apply rotation if needed
         final_rotation = self.actor.transform.rotation + self.rotation_offset

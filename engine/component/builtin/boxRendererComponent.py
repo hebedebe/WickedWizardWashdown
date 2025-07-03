@@ -9,21 +9,17 @@ class BoxRendererComponent(Component):
         self.size = size
         self.color = color
 
-    def render(self, screen, camera):
+    def render(self, screen):
         if not self.actor or not self.actor.physics:
             return
 
-        body = self.actor.physics.body
-        pos = body.position
-        angle = body.angle
-
         width, height = self.size
-        center = (int(pos.x), int(pos.y))
+        center = self.actor.screenPosition
 
         # Create and rotate rectangle surface
         surf = pygame.Surface((width, height), pygame.SRCALPHA)
         surf.fill(self.color)
-        rotated = pygame.transform.rotate(surf, -angle * 57.2958)  # Radians to degrees
+        rotated = pygame.transform.rotate(surf, -self.actor.transform.rotation * 57.2958)  # Radians to degrees
         rect = rotated.get_rect(center=center)
 
         screen.blit(rotated, rect.topleft)

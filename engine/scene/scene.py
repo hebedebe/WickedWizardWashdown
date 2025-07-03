@@ -15,6 +15,8 @@ class Scene:
         self.actors: List[Actor] = []
         self.actor_lookup: Dict[str, Actor] = {}  # By name
         self.actors_by_tag: Dict[str, List[Actor]] = {}
+
+        self.worldOffset = pygame.Vector2(0, 0)
         
         # Scene state
         self.active = True

@@ -1,4 +1,5 @@
 from pygame import Vector2
+from ..scene.scene_object import SceneObject
 
 class Transform:
     def __init__(self, position=Vector2(0, 0), rotation=0, scale=Vector2(1, 1)):
@@ -35,7 +36,7 @@ class Transform:
             scale=tuple(data.get("scale", (1, 1)))
         )
 
-class Actor:
+class Actor(SceneObject):
     def __init__(self, name: str = "Actor", components=[]):
         self.name = name
         self.tags = set()  # Using a set for unique tags
@@ -50,6 +51,10 @@ class Actor:
 
         for component in components: # done here so components are added properly
             self.addComponent(component)
+
+    @property
+    def screenPosition(self):
+        return self.transform.position + self.getScene.worldOffset
 
     def setName(self, name: str) -> None:
         """Set the name of the actor."""

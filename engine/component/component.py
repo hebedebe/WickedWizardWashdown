@@ -3,8 +3,9 @@ import importlib
 import sys
 
 from ..actor.actor import Actor
+from ..scene import SceneObject
 
-class Component(ABC):
+class Component(ABC, SceneObject):
     """
     Base class for all components in the game engine.
     Components are used to add functionality to actors.

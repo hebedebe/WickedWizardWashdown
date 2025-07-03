@@ -165,7 +165,7 @@ class SpriteComponent(Component):
             return
             
         # Calculate final position with offset
-        final_pos = self.actor.transform.position + self.offset
+        final_pos = self.actor.screenPosition + self.offset
         
         # Apply scaling
         final_scale = pygame.Vector2(

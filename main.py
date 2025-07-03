@@ -12,7 +12,7 @@ def main():
     actors: List[Actor] = []
     for i in range(30):
         actors.append(Actor(components=[CircleRendererComponent(color=(0, 0, 255), radius=radius),]))
-        actors[i].transform.setPosition(600, 25 + i * radius)
+        actors[i].transform.setPosition(600, 25 + (i+2) * radius)
 
     scene.addActors(*actors)
     lastactor = Actor(components=[CircleRendererComponent(color=(255, 0, 0), radius=radius),])
