@@ -3,6 +3,7 @@ from engine.actor import Actor
 
 import pygame
 
+from ragdollComponent import RagdollPlayerComponent
 
 def main():
     game = Game(1280, 720)
@@ -42,7 +43,8 @@ def main():
 
     camera = Actor("Camera")
     camera.addComponent(CameraComponent())
-    camera.addComponent(BasicMovementComponent(1000))
+    # camera.addComponent(BasicMovementComponent(1000))
+    camera.addComponent(RagdollPlayerComponent())
     scene.addActor(camera)
 
     spritesheet = game.assetManager.loadImage("testanim")
