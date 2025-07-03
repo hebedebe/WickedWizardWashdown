@@ -144,3 +144,6 @@ logs/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Misc
+pyshortcut.lnk
