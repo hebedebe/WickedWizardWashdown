@@ -1,6 +1,6 @@
 import pygame
 from typing import Optional
-from engine.component.component import Component
+from ..component import Component
 from engine.logger import Logger
 
 class AudioComponent(Component):

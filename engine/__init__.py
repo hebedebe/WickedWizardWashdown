@@ -196,8 +196,6 @@ class Game:
                     self.currentScene.lateUpdate(self.fixedTimestep)
 
                 # Update networking
-                self.networkManager.update()
-
                 self.accumulator -= self.fixedTimestep
 
             # self.deltaTime = frameTime
@@ -212,5 +210,4 @@ class Game:
             self.deltaTime = self.clock.tick(self.targetFps)
             
         # Cleanup
-        self.networkManager.disconnect()
         pygame.quit()

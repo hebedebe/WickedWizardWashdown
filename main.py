@@ -1,4 +1,8 @@
 from engine import *
+from engine.actor import Actor
+
+import pygame
+
 
 def main():
     game = Game(1280, 720)
@@ -29,6 +33,24 @@ def main():
 
     scene.addWidget(FPSDisplay())
 
+    # player = Actor("Player")
+    # player.addComponent(CircleRendererComponent(color=(255, 255, 255)))
+    # player.addComponent(PhysicsCircleComponent(bodyType=pymunk.Body.DYNAMIC, mass=10))
+    # player.addComponent(CameraComponent())
+    # player.addComponent(PhysicsDragComponent(10000))
+    # scene.addActor(player)
+
+    camera = Actor("Camera")
+    camera.addComponent(CameraComponent())
+    camera.addComponent(BasicMovementComponent(1000))
+    scene.addActor(camera)
+
+    spritesheet = game.assetManager.loadImage("testanim")
+    frames = game.assetManager.sliceSpritesheet("testanim", 16, 16)
+    animationActor = Actor("test")
+    # animationActor.transform.position = pygame.Vector2(100, 100)
+    animationActor.addComponent(AnimationComponent(frames))
+    scene.addActor(animationActor)
 
     game.run()
 

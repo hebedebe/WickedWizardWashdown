@@ -1,6 +1,6 @@
 import pymunk
 from engine.component.component import Component
-from engine.component.builtin.physicsComponent import PhysicsComponent
+from engine.component.builtin.physics_component import PhysicsComponent
 
 class ConstraintComponent(Component):
     def __init__(self, actor_a=None, actor_b=None, constraint=None):

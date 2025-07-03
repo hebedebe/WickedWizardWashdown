@@ -1,4 +1,4 @@
-from .physicsComponent import PhysicsComponent
+from .physics_component import PhysicsComponent
 import pymunk
 
 class PhysicsCircleComponent(PhysicsComponent):

@@ -1,6 +1,6 @@
 import pygame
 from .. import Component
-from .constraintComponent import DampedSpringComponent
+from .contraint_component import DampedSpringComponent
 
 class SpringRendererComponent(Component):
     def __init__(self, other_actor):

@@ -1,11 +1,10 @@
 from pygame import Vector2
-from ..scene.scene_object import SceneObject
 
 class Transform:
-    def __init__(self, position=Vector2(0, 0), rotation=0, scale=Vector2(1, 1)):
-        self.position = position  # (x, y)
-        self.rotation = rotation  # in degrees
-        self.scale = scale  # (scale_x, scale_y)
+    def __init__(self):
+        self.position = Vector2(0,0)  # (x, y)
+        self.rotation = 0  # in degrees
+        self.scale = Vector2(1, 1)  # (scale_x, scale_y)
 
     def setPosition(self, x: float, y: float) -> None:
         """Set the position of the transform."""
@@ -36,7 +35,7 @@ class Transform:
             scale=tuple(data.get("scale", (1, 1)))
         )
 
-class Actor(SceneObject):
+class Actor():
     def __init__(self, name: str = "Actor", components=[]):
         self.name = name
         self.tags = set()  # Using a set for unique tags
@@ -53,8 +52,17 @@ class Actor(SceneObject):
             self.addComponent(component)
 
     @property
+    def getGame(self):
+        from .. import Game
+        return Game._instance
+    
+    @property
+    def getScene(self):
+        return self.getGame.currentScene
+
+    @property
     def screenPosition(self):
-        return self.transform.position + self.getScene.worldOffset
+        return self.transform.position - self.getScene.worldOffset
 
     def setName(self, name: str) -> None:
         """Set the name of the actor."""
@@ -77,11 +85,15 @@ class Actor(SceneObject):
             self.components.remove(component)
             component.setActor(None)
 
-    def getComponent(self, component_type):
+    def getComponent(self, component_type, allow_inheritance=False):
         """Get a component of a specific type from the actor."""
         for comp in self.components:
             if isinstance(comp, component_type):
                 return comp
+        if allow_inheritance:
+            for comp in self.components:
+                if issubclass(comp, component_type):
+                    return comp
         return None
 
     def addTag(self, tag: str) -> None:

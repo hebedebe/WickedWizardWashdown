@@ -1,8 +1,8 @@
 import pygame
 import math
 import pymunk
-from .physicsComponent import PhysicsComponent
-from .inputComponent import InputComponent
+from .physics_component import PhysicsComponent
+from .input_component import InputComponent
 
 class PhysicsDragComponent(InputComponent):
     def __init__(self, force=1000):
@@ -17,7 +17,7 @@ class PhysicsDragComponent(InputComponent):
         self.bind_mouse(1, self.on_mouse_up, on_press=False, on_release=True)
 
     def on_mouse_down(self):
-        mouse_pos = pygame.mouse.get_pos()
+        mouse_pos = self.getScene.tMousePos()
         actor_pos = self.actor.transform.position
         dx = mouse_pos[0] - actor_pos[0]
         dy = mouse_pos[1] - actor_pos[1]
@@ -27,7 +27,7 @@ class PhysicsDragComponent(InputComponent):
             self.mouse_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
             self.mouse_body.position = mouse_pos
             # Create a pivot joint between mouse and actor
-            phys = self.actor.getComponent(PhysicsComponent)
+            phys = self.actor.getComponent(PhysicsComponent, allow_inheritance=True)
             if phys:
                 self.mouse_joint = pymunk.PivotJoint(self.mouse_body, phys.body, (0,0), (0,0))
                 self.mouse_joint.max_force = self.force
@@ -44,6 +44,6 @@ class PhysicsDragComponent(InputComponent):
 
     def update(self, delta_time):
         if self.dragging and self.mouse_body:
-            mouse_pos = pygame.mouse.get_pos()
+            mouse_pos = self.getScene.tMousePos()
             self.mouse_body.position = mouse_pos
-            self.mouse_joint.max_force = abs(self.force*math.log(pygame.Vector2.distance_to(pygame.Vector2(mouse_pos), pygame.Vector2(self.actor.transform.position))))
+            self.mouse_joint.max_force = abs(self.force*math.log(pygame.Vector2.distance_to(pygame.Vector2(mouse_pos), pygame.Vector2(self.actor.screenPosition))))

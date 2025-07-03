@@ -3,9 +3,8 @@ import importlib
 import sys
 
 from ..actor.actor import Actor
-from ..scene import SceneObject
 
-class Component(ABC, SceneObject):
+class Component(ABC):
     """
     Base class for all components in the game engine.
     Components are used to add functionality to actors.
@@ -14,6 +13,15 @@ class Component(ABC, SceneObject):
     def __init__(self):
         self.enabled = True  # Indicates if the component is active
         self.actor: Actor = None  # Reference to the actor this component is attached to
+
+    @property
+    def getGame(self):
+        from .. import Game
+        return Game._instance
+    
+    @property
+    def getScene(self):
+        return self.getGame.currentScene
 
     def setActor(self, actor: Actor):
         """

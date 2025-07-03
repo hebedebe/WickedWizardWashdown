@@ -3,10 +3,10 @@ import time
 from typing import Dict, List, Optional, Callable, Tuple
 import pymunk
 
-from ..actor.actor import Actor
 from ..ui.uiManager import UIManager
 from engine.logger import Logger, LogType
-from ..component.builtin.physicsComponent import PhysicsComponent
+from ..component.builtin.physics_component import PhysicsComponent
+from ..actor.actor import Actor
 
 class Scene:
     def __init__(self):
@@ -41,6 +41,14 @@ class Scene:
             'preRender': [],
             'postRender': []
         }
+
+    def mousePos(self):
+        screenPos = pygame.mouse.get_pos()
+        screenPos += self.worldOffset
+        return screenPos
+    
+    def tMousePos(self):
+        return (*self.mousePos(),)
 
     def addPhysics(self, actor: Actor):
         physicsComponent = actor.getComponent(PhysicsComponent)
