@@ -12,7 +12,7 @@ class Component(ABC):
 
     def __init__(self):
         self.enabled = True  # Indicates if the component is active
-        self.actor: Actor = None  # Reference to the actor this component is attached to
+        self.actor: Actor = None  # type: ignore # Reference to the actor this component is attached to
 
     @property
     def getGame(self):
@@ -21,7 +21,7 @@ class Component(ABC):
     
     @property
     def getScene(self):
-        return self.getGame.currentScene
+        return self.getGame.currentScene # type: ignore
 
     def setActor(self, actor: Actor):
         """
@@ -98,9 +98,9 @@ class Component(ABC):
                 continue
             if key in custom:
                 to_json, _ = custom[key]
-                serialized_data[key] = {"__custom__": True, "value": to_json(value)}
+                serialized_data[key] = {"__custom__": True, "value": to_json(value)} # type: ignore
             else:
-                serialized_data[key] = self._serialize_value(value)
+                serialized_data[key] = self._serialize_value(value) # type: ignore
 
         return serialized_data
 

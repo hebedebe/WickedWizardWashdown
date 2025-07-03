@@ -2,11 +2,12 @@ import pygame
 from ..component import Component
 
 class CameraComponent(Component):
-    def __init__(self):
+    """Camera component"""
+    def __init__(self, interpolate=False, smoothing=10):
         super().__init__()
         self.position = pygame.Vector2()
-        self.interpolate = False
-        self.smoothing = 10
+        self.interpolate = interpolate
+        self.smoothing = smoothing
 
     def lateUpdate(self, delta_time):
         if self.interpolate:
@@ -14,5 +15,5 @@ class CameraComponent(Component):
         else:
             self.position = self.actor.transform.position
             
-        self.getScene.worldOffset = self.position - pygame.Vector2(self.getGame.width//2, self.getGame.height//2)
+        self.getScene.worldOffset = self.position - pygame.Vector2(self.getGame.width//2, self.getGame.height//2) # type: ignore
         return super().lateUpdate(delta_time)
