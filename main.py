@@ -9,7 +9,7 @@ from engine.builtin.components.camera_component import CameraComponent
 from engine.builtin.shaders import greyscale_shader
 
 
-def main():
+def main(): 
     """Run main"""
     game: Game = Game(1280, 720)
     game.init()  # Initialize the default shader
