@@ -1,5 +1,6 @@
 import pygame
-from ..component import Component
+from ...core.world.component import Component
+from ...core.game import Game
 
 class CameraComponent(Component):
     """Camera component"""
@@ -14,6 +15,6 @@ class CameraComponent(Component):
             self.position = pygame.Vector2.lerp(self.position, self.actor.transform.position, self.smoothing * delta_time)
         else:
             self.position = self.actor.transform.position
-            
-        self.getScene.worldOffset = self.position - pygame.Vector2(self.getGame.width//2, self.getGame.height//2) # type: ignore
+
+        Game().current_scene.worldOffset = self.position - pygame.Vector2(Game().width//2, Game().height//2) # type: ignore
         return super().lateUpdate(delta_time)

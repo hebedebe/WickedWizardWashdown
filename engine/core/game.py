@@ -7,6 +7,7 @@ import numpy as np
 # Local imports
 from .singleton import singleton
 from .rendering.shader import Shader
+from .rendering.default import DEFAULT_VERT, DEFAULT_FRAG
 
 @singleton
 class Game:
@@ -28,10 +29,22 @@ class Game:
         self.last_time = time.time()
         self.delta_time = 0.0
 
-        self.shaders = {}
-        self.postprocess_chain = []  # 🆕 List of Shader objects in order
+        self.scenes = {}
+        self.current_scene = None
+
         self.init_framebuffers()
         self.init_fullscreen_quad()
+        self.shaders = {}
+        self.postprocess_chain = []  # 🆕 List of Shader objects in order
+        
+        self.buffer = pygame.Surface((width, height), pygame.SRCALPHA)
+
+        print("Remember to call init()!")
+
+    def init(self):
+        self.init_default_shader()  # Initialize the default shader
+
+#region OpenGL
 
     def init_framebuffers(self):
         self.main_color = self.ctx.texture((self.width, self.height), components=4)
@@ -63,15 +76,38 @@ class Game:
         return self.quad_vao_cache[shader.name]
 
     def load_shader(self, name, vert, frag):
-        shader = Shader(self.ctx, vert, frag, name)
+        shader = Shader(vert, frag, name)
         self.shaders[name] = shader
         return shader
+    
+    def init_default_shader(self):
+        self.load_shader('default', DEFAULT_VERT, DEFAULT_FRAG)
+
+        self.add_postprocess_shader(self.get_shader('default'))  # Add default shader to post-process chain
 
     def add_postprocess_shader(self, shader: Shader):
         self.postprocess_chain.append(shader)
 
     def get_shader(self, name):
         return self.shaders.get(name)
+
+#endregion
+
+#region Scene Management
+    def add_scene(self, scene):
+        """Add a scene to the game."""
+        self.scenes[scene.name] = scene
+
+    def set_current_scene(self, scene_name):
+        """Set the current scene by name."""
+        if scene_name in self.scenes:
+            if self.current_scene:
+                self.current_scene.on_exit()
+            self.current_scene = self.scenes[scene_name]
+            self.current_scene.on_enter()
+        else:
+            raise ValueError(f"Scene '{scene_name}' not found.")
+# endregion
 
     def handle_event(self, event):
         if event.type == pygame.QUIT:
@@ -83,20 +119,29 @@ class Game:
             self.init_framebuffers()
 
     def update(self, dt):
-        pass  # override
+        if not self.current_scene:
+            return
+        self.current_scene.update(dt)
+        self.current_scene.phys_update(dt)
+        self.current_scene.late_update(dt)
 
     def render_scene(self):
-        pass  # override
+        self.current_scene.render() if self.current_scene else None
 
     def render(self):
         # 🧱 Step 1: Draw to scene framebuffer
         self.scene_fbo.use()
-        self.ctx.clear(0, 0, 0, 1)
+        # self.ctx.clear(0, 0, 0, 1)
+        self.buffer.fill((0, 0, 0, 255))  # Clear buffer with black
         self.render_scene()
+
+        buffer_data = pygame.image.tobytes(self.buffer, 'RGBA')
+        self.main_color.write(buffer_data)
 
         # 🧱 Step 2: Postprocess chain
         src_tex = self.main_color
-        for i, shader in enumerate(self.postprocess_chain):
+        for i, _shader in enumerate(self.postprocess_chain):
+            shader = _shader.get()
             # Last shader outputs to screen
             if i == len(self.postprocess_chain) - 1:
                 self.ctx.screen.use()

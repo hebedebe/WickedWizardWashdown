@@ -14,15 +14,6 @@ class Component(ABC):
         self.enabled = True  # Indicates if the component is active
         self.actor: Actor = None  # type: ignore # Reference to the actor this component is attached to
 
-    @property
-    def getGame(self):
-        from .. import Game
-        return Game._instance
-    
-    @property
-    def getScene(self):
-        return self.getGame.currentScene # type: ignore
-
     def setActor(self, actor: Actor):
         """
         Set the actor this component is attached to.
@@ -45,6 +36,14 @@ class Component(ABC):
         """
         pass
 
+    def physUpdate(self, delta_time):
+        """
+        Physics update the component with the given delta time.
+        This is called before the regular update.
+        Override this method in derived classes to implement specific physics behavior.
+        """
+        pass
+
     def lateUpdate(self, delta_time):
         """
         Late update the component with the given delta time.
@@ -53,7 +52,7 @@ class Component(ABC):
         """
         pass
 
-    def render(self, surface):
+    def render(self):
         """
         Render the component on the given surface.
         Override this method in derived classes to implement specific rendering behavior.

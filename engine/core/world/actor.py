@@ -52,17 +52,8 @@ class Actor():
             self.addComponent(component)
 
     @property
-    def getGame(self):
-        from .. import Game
-        return Game._instance
-    
-    @property
-    def getScene(self):
-        return self.getGame.currentScene
-
-    @property
     def screenPosition(self):
-        return self.transform.position - self.getScene.worldOffset
+        return self.transform.position - self.scene.worldOffset
 
     def setName(self, name: str) -> None:
         """Set the name of the actor."""
@@ -73,6 +64,7 @@ class Actor():
         assert component not in self.components, "Component already exists in actor"
         self.components.append(component)
         component.setActor(self)
+        print(f"Added component {component.__class__.__name__} to actor {self.name}")
 
     def addComponents(self, *args) -> None:
         """Add multiple components to the actor."""
@@ -143,6 +135,15 @@ class Actor():
         # Update the actor's own state
         self.update(dt)
 
+    def handlePhysUpdate(self, dt: float) -> None:
+        """Handle the physics update logic for the actor."""
+        # Update all components in physics update phase
+        for component in self.components:
+            if component.enabled:
+                component.physUpdate(dt)
+        # Perform any physics update logic for the actor itself
+        self.physUpdate(dt)
+
     def handleLateUpdate(self, dt: float) -> None:
         """Handle the late update logic for the actor."""
         # Update all components in late update phase
@@ -157,21 +158,26 @@ class Actor():
         # Update logic for the actor
         pass
 
+    def physUpdate(self, dt: float) -> None:
+        """Physics update logic for the actor."""
+        # Physics update logic for the actor
+        pass
+
     def lateUpdate(self, dt: float) -> None:
         """Late update logic for the actor."""
         # Late update logic for the actor
         pass
 
-    def handleRender(self, surface) -> None:
+    def handleRender(self) -> None:
         """Handle the rendering of the actor."""
         # Render all components
         for component in self.components:
             if component.enabled:
-                component.render(surface)
+                component.render()
         # Render the actor itself
-        self.render(surface)
+        self.render()
 
-    def render(self, surface) -> None:
+    def render(self) -> None:
         """Render the actor on the given surface."""
         # Render logic for the actor
         pass
