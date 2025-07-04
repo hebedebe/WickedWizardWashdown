@@ -1,6 +1,6 @@
 import pygame
 from typing import Optional, Tuple
-from engine.component.component import Component
+from engine.core.component import Component
 
 class SpriteComponent(Component):
     """

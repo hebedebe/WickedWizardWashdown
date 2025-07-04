@@ -1,8 +1,7 @@
 import pygame
 import pymunk
 
-from engine.component.component import Component
-from engine.logger import Logger
+from engine.core.component import Component
 
 class PhysicsComponent(Component):
     def __init__(self, body=None, shapes=[]):

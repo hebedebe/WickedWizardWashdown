@@ -190,7 +190,7 @@ class Actor():
 
     def deserialize(self, data: dict) -> None:
         """Deserialize the actor from a dictionary."""
-        from ..component.component import Component
+        from .component import Component
         self.name = data.get("name", "Actor")
         self.tags = set(data.get("tags", []))
         self.components = [Component.deserialize(compData) for compData in data.get("components", [])]
@@ -204,7 +204,7 @@ class Actor():
         """
         Create an actor instance from serialized data.
         """
-        from ..component.component import Component
+        from .component import Component
         actor = Actor()
         
         # Deserialize basic actor properties

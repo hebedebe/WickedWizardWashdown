@@ -1,6 +1,6 @@
 # engine/component/builtin/boxRendererComponent.py
 
-from engine.component.component import Component
+from engine.core.component import Component
 import pygame
 
 class BoxRendererComponent(Component):

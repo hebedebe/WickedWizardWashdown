@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import importlib
 import sys
 
-from ..actor.actor import Actor
+from .actor import Actor
 
 class Component(ABC):
     """
