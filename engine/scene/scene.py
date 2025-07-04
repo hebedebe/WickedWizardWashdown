@@ -3,8 +3,9 @@ import time
 from typing import Dict, List, Optional, Callable, Tuple
 import pymunk
 
+from ..game.game import Game
 from ..ui.uiManager import UIManager
-from engine.logger import Logger, LogType
+from ..logger import Logger, LogType
 from ..component.builtin.physics_component import PhysicsComponent
 from ..actor.actor import Actor
 
@@ -15,6 +16,8 @@ class Scene:
         self.actors: List[Actor] = []
         self.actor_lookup: Dict[str, Actor] = {}  # By name
         self.actors_by_tag: Dict[str, List[Actor]] = {}
+
+        self.game=None
 
         self.worldOffset = pygame.Vector2(0, 0)
         
@@ -27,7 +30,6 @@ class Scene:
         self.physicsSpace.gravity = (0, 900)
 
         # UI Management
-        from .. import Game
         self.uiManager = UIManager((Game._instance.width, Game._instance.height))
         
         # Lambda scripts for scene lifecycle events

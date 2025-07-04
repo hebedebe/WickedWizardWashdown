@@ -4,3 +4,4 @@ Pillow>=10.0.0
 PyYAML>=6.0
 pymunk>=7.0.1
 PyQt6>=6.0.0
+moderngl
