@@ -1,7 +1,24 @@
 class Shader:
-    def __init__(self, ctx, vertex_src, fragment_src, name="unnamed"):
+    def __init__(self, vertex_src, fragment_src, name="unnamed"):
+        self.vertex_src = vertex_src
+        self.fragment_src = fragment_src
+        
         self.name = name
-        self.program = ctx.program(vertex_shader=vertex_src, fragment_shader=fragment_src)
+
+        self.initialized = False
+
+    def init(self):
+        if self.initialized: return
+        from ..game import Game
+        try:
+            self.program = Game().ctx.program(vertex_shader=self.vertex_src, fragment_shader=self.fragment_src)
+            self.initialized = True
+        except Exception as e:
+            print(f"Failed to compile shader {self.name}:\n{e}")
+
+    def get(self):
+        self.init()
+        return self
 
     def set_uniform(self, name, value):
         if name in self.program:

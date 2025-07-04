@@ -5,10 +5,14 @@ import time
 import numpy as np
 
 # Local imports
+from .singleton import singleton
 from .rendering.shader import Shader
 
+@singleton
 class Game:
     def __init__(self, width=1280, height=720, title="OpenGL Game"):
+        print("Initializing Game...")
+
         pygame.init()
         pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
         pygame.display.set_caption(title)
