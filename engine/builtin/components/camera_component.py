@@ -1,4 +1,5 @@
 import pygame
+
 from ...core.world.component import Component
 from ...core.game import Game
 
@@ -12,7 +13,7 @@ class CameraComponent(Component):
 
     def lateUpdate(self, delta_time):
         if self.interpolate:
-            self.position = pygame.Vector2.lerp(self.position, self.actor.transform.position, self.smoothing * delta_time)
+            self.position = pygame.Vector2.lerp(self.position, self.actor.transform.position, max(self.smoothing * delta_time, 1))
         else:
             self.position = self.actor.transform.position
 

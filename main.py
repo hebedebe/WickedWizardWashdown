@@ -11,7 +11,7 @@ from engine.builtin.components.sprite_component import SpriteComponent
 from engine.builtin.ui.button import Button 
 from engine.builtin.ui.fps_counter import FPSCounter
 
-from engine.builtin.shaders import greyscale_shader, posterize_shader
+from engine.builtin.shaders import greyscale_shader, posterize_shader, invert_shader, blur_shader, sepia_shader
 
 from engine.core.asset_manager import AssetManager
 
@@ -33,6 +33,15 @@ def main():
 
     test_scene.ui_manager.add_element(Button(100, 180, 120, 25, "posterize on", on_click_callback=lambda: game.add_postprocess_shader(posterize_shader)))
     test_scene.ui_manager.add_element(Button(100, 210, 120, 25, "posterize off", on_click_callback=lambda: game.remove_postprocess_shader(posterize_shader)))
+
+    test_scene.ui_manager.add_element(Button(100, 180+80, 120, 25, "invert on", on_click_callback=lambda: game.add_postprocess_shader(invert_shader)))
+    test_scene.ui_manager.add_element(Button(100, 210+80, 120, 25, "invert off", on_click_callback=lambda: game.remove_postprocess_shader(invert_shader)))
+
+    test_scene.ui_manager.add_element(Button(100, 180+80*2, 120, 25, "sepia on", on_click_callback=lambda: game.add_postprocess_shader(sepia_shader)))
+    test_scene.ui_manager.add_element(Button(100, 210+80*2, 120, 25, "sepia off", on_click_callback=lambda: game.remove_postprocess_shader(sepia_shader)))
+
+    test_scene.ui_manager.add_element(Button(100, 180+80*3, 120, 25, "blur on", on_click_callback=lambda: game.add_postprocess_shader(blur_shader)))
+    test_scene.ui_manager.add_element(Button(100, 210+80*3, 120, 25, "blur off", on_click_callback=lambda: game.remove_postprocess_shader(blur_shader)))
 
     test_scene.ui_manager.add_element(FPSCounter())
 
