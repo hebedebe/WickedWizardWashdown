@@ -84,6 +84,13 @@ class Game:
     def add_postprocess_shader(self, shader: Shader):
         self.postprocess_chain.append(shader)
 
+    def remove_postprocess_shader(self, shader: Shader):
+        """Remove a shader from the post-process chain."""
+        if shader in self.postprocess_chain:
+            self.postprocess_chain.remove(shader)
+        else:
+            print(f"Shader '{shader.name}' not found in post-process chain.")
+
     def get_shader(self, name):
         return self.shaders.get(name)
 
@@ -162,6 +169,8 @@ class Game:
 
             for event in pygame.event.get():
                 self.handle_event(event)
+                if self.current_scene:
+                    self.current_scene.handle_event(event)
 
             self.update(self.delta_time)
             self.render()

@@ -125,6 +125,12 @@ class Actor():
     def getChildren(self) -> list['Actor']:
         """Get this actor's children."""
         return self.children.copy()  # Return copy to prevent external modification
+    
+    def handleEvent(self, event) -> bool:
+        """Handle an event and forward it to components."""
+        # Forward event to all components that can handle events
+        for component in self.components:
+            component.handle_event(event)
 
     def handleUpdate(self, dt: float) -> None:
         """Handle the update logic for the actor."""

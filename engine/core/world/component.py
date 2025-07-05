@@ -29,6 +29,13 @@ class Component(ABC):
         """
         pass
 
+    def handle_event(self, event):
+        """
+        Handle an event.
+        Override this method in derived classes to implement specific event handling behavior.
+        """
+        pass
+
     def update(self, delta_time):
         """
         Update the component with the given delta time.

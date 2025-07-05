@@ -1,10 +1,12 @@
 import pygame
 
 from .game import Game
+from .ui import UIManager
 
 class Scene:
     def __init__(self, name="Scene"):
         self.game = Game()
+        self.ui_manager = UIManager()
         
         self.name = name
 
@@ -13,7 +15,6 @@ class Scene:
 
         self.worldOffset = pygame.Vector2(0, 0)  # Offset for rendering the world
 
-        self.ui_manager = None  # Placeholder for UI manager, if needed
 
 #region Actor Management
     def add_actor(self, actor):
@@ -38,6 +39,13 @@ class Scene:
         """Called when the scene is exited."""
         print(f"Exiting scene: {self.name}")
 
+    def handle_event(self, event):
+        """Handle events for the scene."""
+        for actor in self.actors:
+            actor.handleEvent(event)
+
+        self.ui_manager.handle_event(event)
+
 #region Update Methods
     def update(self, dt):
         """Update the scene with the given delta time."""
@@ -59,4 +67,6 @@ class Scene:
         """Render the scene to the given surface."""
         for actor in self.actors:
             actor.handleRender()
+
+        self.ui_manager.render(self.game.buffer)
 #endregion
