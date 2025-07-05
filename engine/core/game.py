@@ -14,7 +14,7 @@ class Game:
         print("Initializing Game...")
 
         pygame.init()
-        pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
+        pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF)
         pygame.display.set_caption(title)
 
         self.ctx = moderngl.create_context()
