@@ -5,6 +5,10 @@ class UIElement:
         self.rect = pygame.Rect(x, y, width, height)
         self.visible = True
 
+    def update(self, delta_time):
+        """Update the UI element. Override in subclasses if needed."""
+        pass
+
     def render(self, screen):
         if self.visible:
             pygame.draw.rect(screen, (255, 255, 255), self.rect, 1)

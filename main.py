@@ -7,7 +7,9 @@ from engine.builtin.components.circle_renderer_component import CircleRendererCo
 from engine.builtin.components.camera_component import CameraComponent
 from engine.builtin.components.basic_movement_component import BasicMovementComponent
 from engine.builtin.components.sprite_component import SpriteComponent
-from engine.builtin.ui.button_widget import Button 
+
+from engine.builtin.ui.button import Button 
+from engine.builtin.ui.fps_counter import FPSCounter
 
 from engine.builtin.shaders import greyscale_shader, posterize_shader
 
@@ -31,6 +33,8 @@ def main():
 
     test_scene.ui_manager.add_element(Button(100, 180, 120, 25, "posterize on", on_click_callback=lambda: game.add_postprocess_shader(posterize_shader)))
     test_scene.ui_manager.add_element(Button(100, 210, 120, 25, "posterize off", on_click_callback=lambda: game.remove_postprocess_shader(posterize_shader)))
+
+    test_scene.ui_manager.add_element(FPSCounter())
 
     game.run()
 
