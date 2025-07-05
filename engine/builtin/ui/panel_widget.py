@@ -5,11 +5,14 @@ class Panel(UIElement):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
         self.children = []
+        self.background_color = (30, 30, 30)
 
     def add_child(self, child):
         self.children.append(child)
 
     def render(self, screen):
+        if self.visible:
+            pygame.draw.rect(screen, self.background_color, self.rect)
         super().render(screen)
         for child in self.children:
             child.render(screen)
