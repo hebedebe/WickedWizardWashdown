@@ -11,7 +11,7 @@ from engine.builtin.components.sprite_component import SpriteComponent
 from engine.builtin.ui.button import Button 
 from engine.builtin.ui.fps_counter import FPSCounter
 
-from engine.builtin.shaders import greyscale_shader, posterize_shader, invert_shader, blur_shader, sepia_shader
+from engine.builtin.shaders import greyscale_shader, posterize_shader, invert_shader, blur_shader, sepia_shader, bloom_shader, chromatic_aberration_shader, vignette_shader
 
 from engine.core.asset_manager import AssetManager
 
@@ -23,8 +23,8 @@ def main():
     AssetManager().loadImage("colour_test")
 
     test_scene = Scene("Test Scene")
-    test_scene.add_actor(Actor(components=[CircleRendererComponent(radius=50, color=(255, 0, 0, 255)), CameraComponent(interpolate=True), BasicMovementComponent(1000)]))
     test_scene.add_actor(Actor(components=[SpriteComponent(sprite_name="colour_test")]))
+    test_scene.add_actor(Actor(components=[CircleRendererComponent(radius=50, color=(255, 255, 255, 255)), CameraComponent(interpolate=True), BasicMovementComponent(1000)]))
     game.add_scene(test_scene)
     game.set_current_scene("Test Scene")
 
@@ -42,6 +42,15 @@ def main():
 
     test_scene.ui_manager.add_element(Button(100, 180+80*3, 120, 25, "blur on", on_click_callback=lambda: game.add_postprocess_shader(blur_shader)))
     test_scene.ui_manager.add_element(Button(100, 210+80*3, 120, 25, "blur off", on_click_callback=lambda: game.remove_postprocess_shader(blur_shader)))
+
+    test_scene.ui_manager.add_element(Button(100, 180+80*4, 120, 25, "bloom on", on_click_callback=lambda: game.add_postprocess_shader(bloom_shader)))
+    test_scene.ui_manager.add_element(Button(100, 210+80*4, 120, 25, "bloom off", on_click_callback=lambda: game.remove_postprocess_shader(bloom_shader)))
+
+    test_scene.ui_manager.add_element(Button(100, 180+80*5, 120, 25, "vignette on", on_click_callback=lambda: game.add_postprocess_shader(vignette_shader)))
+    test_scene.ui_manager.add_element(Button(100, 210+80*5, 120, 25, "vignette off", on_click_callback=lambda: game.remove_postprocess_shader(vignette_shader)))
+
+    test_scene.ui_manager.add_element(Button(100, 180+80*6, 180, 25, "chromatic aberration on", on_click_callback=lambda: game.add_postprocess_shader(chromatic_aberration_shader)))
+    test_scene.ui_manager.add_element(Button(100, 210+80*6, 180, 25, "chromatic aberration off", on_click_callback=lambda: game.remove_postprocess_shader(chromatic_aberration_shader)))
 
     test_scene.ui_manager.add_element(FPSCounter())
 
