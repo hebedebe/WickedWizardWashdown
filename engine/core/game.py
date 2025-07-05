@@ -6,8 +6,7 @@ import numpy as np
 
 # Local imports
 from .singleton import singleton
-from .rendering.shader import Shader
-from .rendering.default import DEFAULT_VERT, DEFAULT_FRAG
+from .rendering.shader import Shader, DEFAULT_VERT, DEFAULT_FRAG
 
 @singleton
 class Game:
@@ -39,9 +38,6 @@ class Game:
         
         self.buffer = pygame.Surface((width, height), pygame.SRCALPHA)
 
-        print("Remember to call init()!")
-
-    def init(self):
         self.init_default_shader()  # Initialize the default shader
 
 #region OpenGL
@@ -135,7 +131,7 @@ class Game:
         self.buffer.fill((0, 0, 0, 255))  # Clear buffer with black
         self.render_scene()
 
-        buffer_data = pygame.image.tobytes(self.buffer, 'RGBA')
+        buffer_data = pygame.image.tobytes(self.buffer, 'RGBA', True)
         self.main_color.write(buffer_data)
 
         # 🧱 Step 2: Postprocess chain

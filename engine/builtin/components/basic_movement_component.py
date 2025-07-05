@@ -1,5 +1,5 @@
 import pygame
-from ..component import Component
+from ...core.world.component import Component
 
 class BasicMovementComponent(Component):
     def __init__(self, speed: float = 100):

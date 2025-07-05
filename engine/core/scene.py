@@ -13,6 +13,8 @@ class Scene:
 
         self.worldOffset = pygame.Vector2(0, 0)  # Offset for rendering the world
 
+        self.ui_manager = None  # Placeholder for UI manager, if needed
+
 #region Actor Management
     def add_actor(self, actor):
         """Add an actor to the scene."""

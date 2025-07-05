@@ -5,7 +5,6 @@ DEFAULT_FPS = 1/24
 class Frame:
     def __init__(self, surf):
         self.surface: pygame.Surface = surf
-        # self.frame_time = DEFAULT_FPS
 
 class Animation:
     def __init__(self, frames=[], frame_time = DEFAULT_FPS):
