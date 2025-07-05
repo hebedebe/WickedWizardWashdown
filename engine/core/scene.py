@@ -26,6 +26,10 @@ class Scene:
         self.actors.append(actor)
         self.actor_map[actor.name] = actor
 
+    def get_actor(self, name):
+        """Get an actor by name."""
+        return self.actor_map.get(name)
+
     def remove_actor(self, actor):
         """Remove an actor from the scene."""
         actor.scene = None

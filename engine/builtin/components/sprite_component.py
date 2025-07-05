@@ -89,7 +89,7 @@ class SpriteComponent(Component):
         base_surface = self._get_base_surface()
         if not base_surface:
             # Try to load the image if it's not cached
-            asset_manager = self._get_asset_manager()
+            asset_manager = AssetManager()
             base_surface = asset_manager.loadImage(self.sprite_name)
             if not base_surface:
                 return None
