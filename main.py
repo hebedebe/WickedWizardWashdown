@@ -23,9 +23,13 @@ def main():
     AssetManager().loadImage("colour_test")
 
     test_scene = Scene("Test Scene")
-    test_scene.add_actor(Actor(components=[CircleRendererComponent(radius=50, color=(255, 255, 255, 255)), CameraComponent(interpolate=True), BasicMovementComponent(1000)]))
+    test_scene.add_actor(Actor(components=[
+        CircleRendererComponent(radius=50, color=(255, 255, 255, 255)), 
+        CameraComponent(interpolate=True), 
+        BasicMovementComponent(1000)
+    ]))
     game.add_scene(test_scene)
-    game.set_current_scene("Test Scene")
+    game.load_scene("Test Scene")
 
     test_scene.ui_manager.add_element(FPSCounter())
 

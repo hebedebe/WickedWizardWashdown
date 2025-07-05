@@ -39,6 +39,14 @@ class Scene:
         """Called when the scene is exited."""
         print(f"Exiting scene: {self.name}")
 
+    def on_pause(self):
+        """Called when the scene is paused."""
+        print(f"Pausing scene: {self.name}")
+
+    def on_resume(self):
+        """Called when the scene is resumed."""
+        print(f"Resuming scene: {self.name}")
+
     def handle_event(self, event):
         """Handle events for the scene."""
         for actor in self.actors:

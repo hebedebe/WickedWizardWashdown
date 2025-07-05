@@ -30,6 +30,7 @@ class Game:
 
         self.scenes = {}
         self.current_scene = None
+        self.scene_stack = []
 
         self.init_framebuffers()
         self.init_fullscreen_quad()
@@ -101,18 +102,40 @@ class Game:
 
 #region Scene Management
     def add_scene(self, scene):
-        """Add a scene to the game."""
         self.scenes[scene.name] = scene
 
-    def set_current_scene(self, scene_name):
-        """Set the current scene by name."""
+    def remove_scene(self, scene_name):
+        """Remove a scene by name."""
         if scene_name in self.scenes:
-            if self.current_scene:
-                self.current_scene.on_exit()
-            self.current_scene = self.scenes[scene_name]
-            self.current_scene.on_enter()
+            del self.scenes[scene_name]
         else:
             raise ValueError(f"Scene '{scene_name}' not found.")
+
+    def push_scene(self, scene_name):
+        if self.current_scene:
+            self.current_scene.on_pause()
+        self.current_scene = self.scenes[scene_name]
+        self.current_scene.on_enter()
+        self.scene_stack.append(self.current_scene)
+
+    def pop_scene(self):
+        if not self.scene_stack:
+            raise ValueError("No scenes to pop.")
+        self.current_scene.on_exit()
+        self.scene_stack.pop()
+        if self.scene_stack:
+            self.current_scene = self.scene_stack[-1]
+            self.current_scene.on_resume()
+        else:
+            self.current_scene = None
+
+    def load_scene(self, scene_name):
+        self.scene_stack.clear()  # Clear stack before loading new scene
+        if self.current_scene:
+            self.current_scene.on_exit()
+        self.current_scene = self.scenes[scene_name]
+        self.current_scene.on_enter()
+
 # endregion
 
     def handle_event(self, event):
@@ -123,13 +146,14 @@ class Game:
             pygame.display.set_mode((self.width, self.height), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
             self.ctx.viewport = (0, 0, self.width, self.height)
             self.init_framebuffers()
+        elif self.current_scene:
+            self.current_scene.handle_event(event)
 
     def update(self, dt):
-        if not self.current_scene:
-            return
-        self.current_scene.update(dt)
-        self.current_scene.phys_update(dt)
-        self.current_scene.late_update(dt)
+        if self.current_scene:
+            self.current_scene.update(dt)
+            self.current_scene.phys_update(dt)
+            self.current_scene.late_update(dt)
 
     def render_scene(self):
         self.current_scene.render() if self.current_scene else None
@@ -137,7 +161,6 @@ class Game:
     def render(self):
         # 🧱 Step 1: Draw to scene framebuffer
         self.scene_fbo.use()
-        # self.ctx.clear(0, 0, 0, 1)
         self.buffer.fill((0, 0, 0, 255))  # Clear buffer with black
         self.render_scene()
 
@@ -172,8 +195,6 @@ class Game:
 
             for event in pygame.event.get():
                 self.handle_event(event)
-                if self.current_scene:
-                    self.current_scene.handle_event(event)
 
             self.update(self.delta_time)
             self.render()
