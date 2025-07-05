@@ -10,11 +10,12 @@ from .rendering.shader import Shader, DEFAULT_VERT, DEFAULT_FRAG
 
 @singleton
 class Game:
-    def __init__(self, width=1280, height=720, title="OpenGL Game"):
+    def __init__(self, width=1280, height=720, title="OpenGL Game", fullscreen=False):
         print("Initializing Game...")
 
         pygame.init()
-        pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF)
+        self.flags = pygame.OPENGL | pygame.DOUBLEBUF | (pygame.FULLSCREEN if fullscreen else 0)
+        pygame.display.set_mode((width, height), self.flags)
         pygame.display.set_caption(title)
 
         self.ctx = moderngl.create_context()
@@ -40,6 +41,31 @@ class Game:
         self.buffer = pygame.Surface((width, height), pygame.SRCALPHA)
 
         self.init_default_shader()  # Initialize the default shader
+
+    def quit(self):
+        """Quit the game and clean up resources."""
+        self.running = False
+
+    def set_fullscreen(self, fullscreen: bool):
+        """Toggle fullscreen mode."""
+        if fullscreen:
+            self.flags |= pygame.FULLSCREEN
+        else:
+            self.flags &= ~pygame.FULLSCREEN
+        pygame.display.set_mode((self.width, self.height), self.flags)
+        self.ctx.viewport = (0, 0, self.width, self.height)
+        # Reinitialize the buffer to match the new resolution
+        self.buffer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        print(f"Fullscreen mode set to {'on' if fullscreen else 'off'}.")
+
+    def toggle_fullscreen(self):
+        """Toggle fullscreen mode."""
+        if self.flags & pygame.FULLSCREEN:
+            self.set_fullscreen(False)
+        else:
+            self.set_fullscreen(True)
+        # Debugging: Print current flags
+        print(f"Current display flags: {self.flags}")
 
 #region OpenGL
 
@@ -103,6 +129,7 @@ class Game:
 #region Scene Management
     def add_scene(self, scene):
         self.scenes[scene.name] = scene
+        print(f"Scene '{scene.name}' added.")
 
     def remove_scene(self, scene_name):
         """Remove a scene by name."""
@@ -143,9 +170,13 @@ class Game:
             self.running = False
         elif event.type == pygame.VIDEORESIZE:
             self.width, self.height = event.size
-            pygame.display.set_mode((self.width, self.height), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
+            pygame.display.set_mode((self.width, self.height), self.flags)
             self.ctx.viewport = (0, 0, self.width, self.height)
             self.init_framebuffers()
+            # Reinitialize the buffer to match the new resolution
+            self.buffer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            # Debugging: Print new dimensions
+            print(f"Resolution changed: {self.width}x{self.height}")
         elif self.current_scene:
             self.current_scene.handle_event(event)
 

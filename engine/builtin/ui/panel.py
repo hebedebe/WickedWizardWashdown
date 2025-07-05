@@ -2,8 +2,8 @@ import pygame
 from engine.core.ui import UIElement
 
 class Panel(UIElement):
-    def __init__(self, x, y, width, height):
-        super().__init__(x, y, width, height)
+    def __init__(self, position, width, height):
+        super().__init__(position, width, height)
         self.children = []
         self.background_color = (30, 30, 30)
 

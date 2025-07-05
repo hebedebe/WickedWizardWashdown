@@ -1,8 +1,8 @@
 import pygame
 
 class UIElement:
-    def __init__(self, x, y, width, height):
-        self.rect = pygame.Rect(x, y, width, height)
+    def __init__(self, position, width, height):
+        self.rect = pygame.Rect(position[0], position[1], width, height)
         self.visible = True
 
     def update(self, delta_time):

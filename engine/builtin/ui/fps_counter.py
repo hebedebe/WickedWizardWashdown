@@ -3,8 +3,8 @@ from engine.core.ui import UIElement
 from engine.core.game import Game
 
 class FPSCounter(UIElement):
-    def __init__(self, x=10, y=10, font_size=24, color=(255, 255, 255)):
-        super().__init__(x, y, 0, 0)  # Width and height are dynamic based on text
+    def __init__(self, position=(0,0), font_size=24, color=(255, 255, 255)):
+        super().__init__(position, 0, 0)  # Width and height are dynamic based on text
         self.font = pygame.font.Font(None, font_size)
         self.color = color
 

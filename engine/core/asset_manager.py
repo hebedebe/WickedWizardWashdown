@@ -277,7 +277,7 @@ class AssetManager:
         """Slice a spritesheet into individual sprites."""
         image = self.getImage(image_name)
         if not image:
-            return []
+            raise ValueError(f"Image '{image_name}' not found in assets.")
             
         sprites = []
         image_width, image_height = image.get_size()
@@ -309,6 +309,21 @@ class AssetManager:
                 self.loadFont(name, size)
             elif asset_type == 'data':
                 self.loadData(name)
+                
+    def autoloadAssets(self) -> None:
+        """Automatically load all files in the assets folder."""
+        for asset_type, path in [("image", self.imagePath), ("sound", self.soundPath), ("font", self.fontPath), ("data", self.dataPath)]:
+            for file in path.iterdir():
+                if file.is_file():
+                    if asset_type == "image" and file.suffix.lower() in self.imageFormats:
+                        self.loadImage(file.stem)  # Use file.stem to remove suffix
+                    elif asset_type == "sound" and file.suffix.lower() in self.soundFormats:
+                        self.loadSound(file.stem)  # Use file.stem to remove suffix
+                    elif asset_type == "font" and file.suffix.lower() in self.fontFormats:
+                        self.loadFont(file.stem)  # Use file.stem to remove suffix
+                    elif asset_type == "data" and file.suffix.lower() == ".json":
+                        self.loadData(file.stem)  # Use file.stem to remove suffix
+                    print(f"Autoloaded {asset_type}: {file.name}")
                 
     def cleanup(self) -> None:
         """Clean up all loaded assets."""

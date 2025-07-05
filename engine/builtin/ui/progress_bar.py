@@ -2,8 +2,8 @@ import pygame
 from engine.core.ui import UIElement
 
 class ProgressBar(UIElement):
-    def __init__(self, x, y, width, height, progress=0.0, color=(0, 255, 0), background_color=(50, 50, 50)):
-        super().__init__(x, y, width, height)
+    def __init__(self, position, width, height, progress=0.0, color=(0, 255, 0), background_color=(50, 50, 50)):
+        super().__init__(position, width, height)
         self.progress = max(0.0, min(1.0, progress))  # Clamp between 0.0 and 1.0
         self.color = color
         self.background_color = background_color

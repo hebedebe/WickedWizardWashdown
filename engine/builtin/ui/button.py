@@ -3,8 +3,8 @@ from engine.core.ui import UIElement
 from engine.core.asset_manager import AssetManager
 
 class Button(UIElement):
-    def __init__(self, x, y, width, height, text, font=None, font_size=24, on_click_callback=None, on_start_hover_callback=None, on_stop_hover_callback=None):
-        super().__init__(x, y, width, height)
+    def __init__(self, position, width, height, text, font=None, font_size=24, on_click_callback=None, on_start_hover_callback=None, on_stop_hover_callback=None):
+        super().__init__(position, width, height)
         self.text = text
         
         self.on_click_callback = on_click_callback
