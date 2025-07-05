@@ -82,6 +82,9 @@ class Game:
         self.add_postprocess_shader(self.get_shader('default'))  # Add default shader to post-process chain
 
     def add_postprocess_shader(self, shader: Shader):
+        if shader in self.postprocess_chain:
+            print(f"Prevented duplicate shader addition of shader '{shader.name}'.")
+            return
         self.postprocess_chain.append(shader)
 
     def remove_postprocess_shader(self, shader: Shader):
