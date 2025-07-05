@@ -1,6 +1,7 @@
 import pygame
 import math
 import pymunk
+
 from .physics_component import PhysicsComponent
 from .input_component import InputComponent
 

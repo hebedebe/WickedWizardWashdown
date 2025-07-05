@@ -79,6 +79,13 @@ class Actor():
 
     def getComponent(self, component_type, allow_inheritance=False):
         """Get a component of a specific type from the actor."""
+        if type(component_type) is str:
+            # If a string is passed, treat it as a class name
+            component = next((comp for comp in self.components if comp.__class__.__name__ == component_type), None)
+            if not component_type:
+                return None
+            return component
+            
         for comp in self.components:
             if isinstance(comp, component_type):
                 return comp

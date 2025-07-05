@@ -1,7 +1,6 @@
 import pygame
 from typing import Optional
-from ..component import Component
-from engine.logger import Logger
+from ...core.world.component import Component
 
 class AudioComponent(Component):
     """
@@ -102,7 +101,7 @@ class AudioComponent(Component):
                 self.is_playing = True
                 return True
         except pygame.error as e:
-            Logger.error(f"Error playing sound {self.sound_name}: {e}")
+            print(f"Error playing sound {self.sound_name}: {e}")
             
         return False
 

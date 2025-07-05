@@ -1,5 +1,5 @@
 import pygame
-from typing import Optional, Tuple
+from typing import Optional
 
 from ...core.world.component import Component
 from ...core.asset_manager import AssetManager

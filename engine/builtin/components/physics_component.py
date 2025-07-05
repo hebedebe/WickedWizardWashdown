@@ -1,7 +1,5 @@
-import pygame
-import pymunk
-
-from engine.core.component import Component
+from ...core.world.component import Component
+from ...core.game import Game
 
 class PhysicsComponent(Component):
     def __init__(self, body=None, shapes=[]):
@@ -10,8 +8,7 @@ class PhysicsComponent(Component):
         self.shapes = [*shapes]
 
     def start(self):
-        from ... import Game
-        Game._instance.currentScene.addPhysics(self.actor)
+        Game().current_scene.add_physics(self.actor)
         self.body.position = (*self.actor.transform.position,)
         self.body.rotation = self.actor.transform.rotation
         return super().start()

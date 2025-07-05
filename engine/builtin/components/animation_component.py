@@ -1,5 +1,5 @@
 import pygame
-from ..component import Component
+from ...core.world.component import Component
 from ...animation.animation import Frame, Animation
 
 class AnimationComponent(Component):

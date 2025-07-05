@@ -1,5 +1,6 @@
 import pymunk
-from engine.core.component import Component
+
+from ...core.world.component import Component
 from .physics_component import PhysicsComponent
 
 class ConstraintComponent(Component):

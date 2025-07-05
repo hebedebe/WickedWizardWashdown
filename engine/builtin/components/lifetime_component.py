@@ -1,6 +1,4 @@
-# engine/component/builtin/lifetimeComponent.py
-
-from engine.core.component import Component
+from ...core.world.component import Component
 
 class LifetimeComponent(Component):
     def __init__(self, lifetime: float):

@@ -1,6 +1,7 @@
 import pygame
 from typing import Optional, Tuple
-from engine.core.component import Component
+
+from engine.core.world.component import Component
 
 class TextComponent(Component):
     """

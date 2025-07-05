@@ -1,4 +1,5 @@
 import pygame
+import pymunk
 
 from .game import Game
 from .ui import UIManager
@@ -7,6 +8,8 @@ class Scene:
     def __init__(self, name="Scene"):
         self.game = Game()
         self.ui_manager = UIManager()
+        self.physics_space = pymunk.Space()
+        self.physics_space.gravity = (0, 900)
         
         self.name = name
 
@@ -28,6 +31,13 @@ class Scene:
         actor.scene = None
         self.actors.remove(actor)
         self.actor_map.pop(actor.name, None)
+
+    def add_physics(self, actor):
+        """Add an actor's physics body to the scene's physics space."""
+        physics_component = actor.getComponent('PhysicsComponent')
+        if physics_component and physics_component.body:
+            self.physics_space.add(physics_component.body)
+            
 #endregion
 
 #region Lifecycle Methods

@@ -1,7 +1,7 @@
 import pygame
 
-from engine.core.world.component import Component
-from engine.core.game import Game
+from ...core.world.component import Component
+from ...core.game import Game
 
 class CircleRendererComponent(Component):
     def __init__(self, radius=25, color=(255,255,255,255)):
