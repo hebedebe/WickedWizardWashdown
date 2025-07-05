@@ -27,7 +27,7 @@ class Game:
         self.width = width
         self.height = height
         self.last_time = time.time()
-        self.delta_time = 0.0
+        self.delta_time = 0.1
 
         self.scenes = {}
         self.current_scene = None
@@ -220,16 +220,12 @@ class Game:
 
     def run(self):
         while self.running:
-            now = time.time()
-            self.delta_time = now - self.last_time
-            self.last_time = now
-
             for event in pygame.event.get():
                 self.handle_event(event)
 
             self.update(self.delta_time)
             self.render()
             pygame.display.flip()
-            self.clock.tick(60)
+            self.delta_time = min(max(float(self.clock.tick())/1000, 0), 1)
 
         pygame.quit()

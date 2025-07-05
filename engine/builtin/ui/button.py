@@ -14,6 +14,14 @@ class Button(UIElement):
         self.font = AssetManager().getFont(font, font_size) if font is not None else AssetManager().getDefaultFont(size=font_size)
         self.hovered = False
 
+        self.enabled = True
+        self.visible = True
+
+    def set_active(self, active):
+        """Set the button active or inactive."""
+        self.enabled = active
+        self.visible = active
+
     def render(self, screen):
         super().render(screen)
         if self.visible:
@@ -23,6 +31,8 @@ class Button(UIElement):
             screen.blit(text_surface, (self.rect.x + 5, self.rect.y + 5))
 
     def handle_event(self, event):
+        if not self.enabled:
+            return
         if event.type == pygame.MOUSEMOTION:
             is_hovered = self.rect.collidepoint(event.pos)
             if is_hovered and not self.hovered:

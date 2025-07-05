@@ -38,7 +38,7 @@ class AssetManager:
         self.dataPath = self.basePath / "data"
         
         # Supported formats
-        self.imageFormats = {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tga'}
+        self.imageFormats = {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tga', '.webp'}
         self.soundFormats = {'.wav', '.ogg', '.mp3'}
         self.fontFormats = {'.ttf', '.otf'}
         

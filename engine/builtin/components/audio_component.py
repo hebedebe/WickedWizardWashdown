@@ -1,6 +1,8 @@
 import pygame
 from typing import Optional
+
 from ...core.world.component import Component
+from ...core.asset_manager import AssetManager
 
 class AudioComponent(Component):
     """
@@ -39,12 +41,6 @@ class AudioComponent(Component):
         self.volume = max(0.0, min(1.0, volume))
         if self._sound_object:
             self._sound_object.set_volume(self.volume)
-            
-    def _get_asset_manager(self):
-        """Get the asset manager from the game instance."""
-        from engine import Game
-        game = Game()
-        return game.assetManager
         
     def _get_sound_object(self) -> Optional[pygame.mixer.Sound]:
         """Get the sound object from the asset manager."""
@@ -56,7 +52,7 @@ class AudioComponent(Component):
             return self._sound_object
             
         # Try to get from asset manager cache first
-        asset_manager = self._get_asset_manager()
+        asset_manager = AssetManager()
         sound = asset_manager.getSound(self.sound_name)
         
         if not sound:
