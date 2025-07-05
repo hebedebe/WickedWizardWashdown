@@ -1,6 +1,9 @@
 import pygame
 from typing import Optional, Tuple
-from engine.core.component import Component
+
+from ...core.world.component import Component
+from ...core.asset_manager import AssetManager
+from ...core.game import Game
 
 class SpriteComponent(Component):
     """
@@ -66,20 +69,13 @@ class SpriteComponent(Component):
         self._cache_dirty = True
         self._cached_surface = None
         
-    def _get_asset_manager(self):
-        """Get the asset manager from the game instance."""
-        from engine import Game
-        game = Game()
-        return game.assetManager
-        
     def _get_base_surface(self) -> Optional[pygame.Surface]:
         """Get the base surface from the asset manager."""
         if not self.sprite_name:
             return None
-            
-        asset_manager = self._get_asset_manager()
-        return asset_manager.getImage(self.sprite_name)
-        
+
+        return AssetManager().getImage(self.sprite_name)
+
     def _get_processed_surface(self) -> Optional[pygame.Surface]:
         """Get the processed surface with all transformations applied."""
         if not self.sprite_name:
@@ -154,7 +150,7 @@ class SpriteComponent(Component):
         
         return rect
         
-    def render(self, surface: pygame.Surface) -> None:
+    def render(self) -> None:
         """Render the sprite component."""
         if not self.visible or not self.sprite_name or not self.actor:
             return
@@ -192,15 +188,14 @@ class SpriteComponent(Component):
         render_rect.center = (int(final_pos.x), int(final_pos.y))
         
         # Render to the target surface
-        surface.blit(sprite_surface, render_rect)
+        Game().buffer.blit(sprite_surface, render_rect)
         
     def start(self) -> None:
         """Initialize the sprite component when attached to an actor."""
         super().start()
         # Preload the sprite if specified
         if self.sprite_name:
-            asset_manager = self._get_asset_manager()
-            asset_manager.loadImage(self.sprite_name)
+            AssetManager().loadImage(self.sprite_name)
             
     def serialize(self) -> dict:
         """Serialize the sprite component data."""
