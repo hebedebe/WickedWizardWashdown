@@ -160,7 +160,7 @@ class Game:
         self.scene_stack.clear()  # Clear stack before loading new scene
         if self.current_scene:
             self.current_scene.on_exit()
-        self.current_scene = self.scenes[scene_name]
+        self.current_scene = type(self.scenes[scene_name])()
         self.current_scene.on_enter()
 
 # endregion

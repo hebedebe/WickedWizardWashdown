@@ -1,6 +1,7 @@
 import pygame
 from copy import copy
 import math
+import random
 
 from engine.core.scene import Scene
 from engine.core.game import Game
@@ -12,6 +13,7 @@ from engine.builtin.ui.button import Button
 from engine.builtin.ui.label import Label
 from engine.builtin.ui.fps_counter import FPSCounter
 from engine.builtin.ui.panel import Panel
+from engine.builtin.ui.progress_bar import ProgressBar
 
 from engine.builtin.components.sprite_component import SpriteComponent
 from engine.builtin.components.camera_component import CameraComponent
@@ -28,6 +30,21 @@ class GameScene(Scene):
             pygame.Vector2(640, 0)    # Right position
         ]
         self.monitor_on = False
+        self.current_camera = 0
+        self.cameras = ["cam_basement", "cam_lockerroom", "cam_hotel"]
+
+        self.jack_pos = -1
+        self.jack_positions = ["jack_cam_1", "jack_cam_2", "jack_cam_3", "jack_outside"]
+        self.jack_locations = [(20, 70), (0, 0), (0, 0), (640,0)]
+        self.jack_sizes = [0.05, 0.1, 0.1, 0.9]
+        self.jack_move_timer = 5
+        self.jack_move_timer_min = 5
+        self.jack_move_timer_max = 40
+        self.jack_jumpscare_timer_min = 1.5
+        self.jack_jumpscare_timer_max = 3.0
+
+        self.touch_o_meter = 0
+        self.touch_o_meter_max = 1
 
         self.power = 100
         self.power_drain_rate = 1.7
@@ -47,6 +64,14 @@ class GameScene(Scene):
 
         interior_brightness = 200  # Adjust this value to change the brightness of the interior
 
+        outside = Actor("outside")
+        outside_sprite = SpriteComponent("outside", tint_color=(100, 100, 100))
+        outside.transform.scale = pygame.Vector2(0.9)  # Adjust scale as needed
+        outside.transform.position = self.positions[2]
+        outside.transform.rotation = 90
+        outside.addComponent(outside_sprite)
+        self.add_actor(outside)
+
         monitor = Actor("monitor")
         monitor_sprite = SpriteComponent("monitor", tint_color=(interior_brightness, interior_brightness, interior_brightness))
         monitor.transform.scale = pygame.Vector2(1)  # Adjust scale as needed
@@ -54,15 +79,32 @@ class GameScene(Scene):
         monitor.addComponent(monitor_sprite)
         self.add_actor(monitor)
 
+        monitor_background = Actor("monitor_background")
+        monitor_background_sprite = SpriteComponent(self.cameras[self.current_camera])
+        monitor_background.transform.scale = pygame.Vector2(0.32)  # Adjust scale as needed
+        monitor_background.transform.position = self.positions[1] + pygame.Vector2(10, 5)
+        monitor_background.addComponent(monitor_background_sprite)
+        self.add_actor(monitor_background)
+
+        monitor_jack = Actor("monitor_jack")
+        monitor_jack_sprite = SpriteComponent(self.jack_positions[self.jack_pos])
+        monitor_jack.transform.scale = pygame.Vector2(0.1)  # Adjust scale as needed
+        monitor_jack.transform.position = self.positions[1]
+        monitor_jack.addComponent(monitor_jack_sprite)
+        self.add_actor(monitor_jack)
+
         power_button = Actor("power_button")
         power_button_sprite = SpriteComponent("power_button", tint_color=(interior_brightness, interior_brightness, interior_brightness))
         power_button_click = ClickableComponent(20, 20, (0, 0))
         power_button_click_audio = AudioComponent("click")
         power_button_start_audio = AudioComponent("startup", volume=2)
         def toggle_monitor():
+            if (self.power <= 0):
+                return
             power_button_click_audio.play()
             self.monitor_on = not self.monitor_on
             if self.monitor_on:
+                self.power -= 4
                 power_button_start_audio.play()
             else:
                 power_button_start_audio.stop()
@@ -93,14 +135,6 @@ class GameScene(Scene):
         bed.addComponent(bed_sprite)
         self.add_actor(bed)
 
-        outside = Actor("outside")
-        outside_sprite = SpriteComponent("outside", tint_color=(100, 100, 100))
-        outside.transform.scale = pygame.Vector2(0.9)  # Adjust scale as needed
-        outside.transform.position = self.positions[2]
-        outside.transform.rotation = 90
-        outside.addComponent(outside_sprite)
-        self.add_actor(outside)
-
         window = Actor("window")
         window_sprite = SpriteComponent("window", tint_color=(interior_brightness, interior_brightness, interior_brightness))
         window.transform.scale = pygame.Vector2(1)  # Adjust scale as needed
@@ -110,11 +144,15 @@ class GameScene(Scene):
 
         camera = Actor("camera")
         camera.addComponent(CameraComponent(interpolate=True, smoothing=20))
+        self.sleep_overlay = SpriteComponent("asleep")
+        self.sleep_overlay.enabled = False
+        camera.transform.scale = pygame.Vector2(1.3)  # Adjust scale as needed
+        camera.addComponent(self.sleep_overlay)
         camera.transform.position = self.positions[1]
         self.add_actor(camera)
 
-        self.look_left_button = Button([0, Game().height//2], 50, 50, "<<<", font_size=24, on_click_callback=self.look_left)
-        self.look_right_button = Button([Game().width - 50, Game().height//2], 50, 50, ">>>", font_size=24, on_click_callback=self.look_right)
+        self.look_left_button = Button([0, Game().height//2-70], 50, 150, "<<<", font_size=24, on_click_callback=self.look_left)
+        self.look_right_button = Button([Game().width - 50, Game().height//2-70], 50, 150, ">>>", font_size=24, on_click_callback=self.look_right)
         self.lower_panel = Panel((0,430), Game().width, 100)
         self.time_label = Label([Game().width//2+200, 440], 1000, text=f"Time: ", font_size=36, color=(255, 255, 255))
         self.power_label = Label([Game().width//2-310, 440], 1000, text=f"Power: {self.power}", font_size=24, color=(200, 0, 0))
@@ -124,21 +162,45 @@ class GameScene(Scene):
         self.lower_panel.add_child(self.time_label)
 
         def _sleep():
+            if self.sleep > 40:
+                print("You are too awake to sleep!")
+                return
             self.asleep = True
             self.sleep_timer = 0
+            self.sleep_timer -= random.randint(1, 3)
             print("Sleeping...")
 
-        self.sleep_button = Button((Game().width//2, 440), 100, 50, "Sleep", font_size=24, on_click_callback=_sleep)
+        self.sleep_button = Button((Game().width//2-100, 440), 200, 50, "Sleep", font_size=24, on_click_callback=_sleep)
 
-        self.next_cam_button = Button((Game().width//2-55, 440), 50, 50, "<", font_size=24, on_click_callback=lambda: print("Not yet implemented!"))
-        self.previous_cam_button = Button((Game().width//2+55, 440), 50, 50, ">", font_size=24, on_click_callback=lambda: print("Not yet implemented!"))
+        def prev_cam():
+            self.current_camera = max(self.current_camera - 1, 0)
+            AssetManager().getSound("switch_cam").play()
 
-        self.touch_jack_button = Button((Game().width//2, 440), 100, 50, "Touch Jack", font_size=24, on_click_callback=lambda: print("Not yet implemented!"))
+        def next_cam():
+            self.current_camera = min(self.current_camera + 1, len(self.cameras) - 1)
+            AssetManager().getSound("switch_cam").play()
+
+        self.next_cam_button = Button((Game().width//2-55, 440), 50, 50, "<", font_size=24, on_click_callback=prev_cam)
+        self.previous_cam_button = Button((Game().width//2+55, 440), 50, 50, ">", font_size=24, on_click_callback=next_cam)
+
+        def touch_jack():
+            AssetManager().getSound("squish").play()
+            self.touch_o_meter += 0.1
+            self.touch_o_meter = min(self.touch_o_meter, self.touch_o_meter_max+0.05)
+            if self.touch_o_meter >= self.touch_o_meter_max:
+                self.jack_pos = 0
+                self.jack_move_timer = random.randint(self.jack_move_timer_min, self.jack_move_timer_max)
+                AssetManager().getSound("yowch").play()
+
+
+        self.touch_jack_button = Button((Game().width//2, 440), 100, 50, "Touch Jack", font_size=24, on_click_callback=touch_jack)
+        self.touch_jack_bar = ProgressBar((Game().width//2-110, 440), 100, 50, self.touch_o_meter, (255, 0, 0), (50, 50, 50))
 
         self.lower_panel.add_child(self.sleep_button)
         self.lower_panel.add_child(self.next_cam_button)
         self.lower_panel.add_child(self.previous_cam_button)
         self.lower_panel.add_child(self.touch_jack_button)
+        self.lower_panel.add_child(self.touch_jack_bar)
 
         self.look_left_button.visible = False
         self.ui_manager.add_element(self.look_left_button)
@@ -158,11 +220,35 @@ class GameScene(Scene):
         self.look_left_button.set_active(self.position > 0 and not self.asleep)
         self.look_right_button.set_active(self.position < 2 and not self.asleep)
 
-        self.sleep_button.set_active(self.position == 0 and not self.asleep)
-        self.next_cam_button.set_active(self.position == 1 and not self.asleep)
-        self.previous_cam_button.set_active(self.position == 1 and not self.asleep)
-        self.touch_jack_button.set_active(self.position == 2 and not self.asleep)
+        if self.sleep > 40:
+            self.sleep_button.text = "Can't sleep yet"
+        else:
+            self.sleep_button.text = "Sleep"
 
+        if self.power <= 0:
+            self.monitor_on = False
+
+        self.sleep_button.set_active(self.position == 0 and not self.asleep)
+        self.next_cam_button.set_active(self.position == 1 and not self.asleep and self.monitor_on)
+        self.previous_cam_button.set_active(self.position == 1 and not self.asleep and self.monitor_on)
+        self.touch_jack_button.set_active(self.position == 2 and not self.asleep and self.jack_pos == -1)
+        self.touch_jack_bar.visible = self.position == 2 and not self.asleep and self.jack_pos == -1
+        self.touch_jack_bar.set_progress(self.touch_o_meter / self.touch_o_meter_max)
+
+        monitor_background = self.get_actor("monitor_background")
+        monitor_background.getComponent(SpriteComponent).set_sprite(self.cameras[self.current_camera])
+        monitor_jack = self.get_actor("monitor_jack")
+        monitor_jack.transform.scale = pygame.Vector2(self.jack_sizes[self.jack_pos])
+        monitor_jack.getComponent(SpriteComponent).set_sprite(self.jack_positions[self.jack_pos])
+        monitor_jack.transform.position = self.positions[1] + self.jack_locations[self.jack_pos]
+
+        monitor_background.getComponent(SpriteComponent).enabled = self.monitor_on
+        # Show jack when monitor is on and either jack is on current camera or jack is outside (pos -1) on camera 2
+        jack_visible = (self.monitor_on and (self.current_camera == self.jack_pos)) or self.jack_pos == -1
+        monitor_jack.getComponent(SpriteComponent).enabled = jack_visible
+        monitor_jack.getComponent(SpriteComponent).set_tint((100, 100, 100) if self.jack_pos == -1 else (255, 255, 255))
+
+        self.sleep_overlay.enabled = self.asleep
 
         if self.monitor_on:
             self.power -= delta_time * self.power_drain_rate
@@ -187,7 +273,30 @@ class GameScene(Scene):
         self.power_label.text = f"Power: {math.ceil(self.power)}%"
         self.sleep_label.text = f"Sleep: {math.ceil(self.sleep)}%"
 
+        self.touch_o_meter -= delta_time * 0.2
+        self.touch_o_meter = max(0, self.touch_o_meter)
+
+        self.jack_move_timer -= delta_time
+        if self.jack_move_timer <= 0:
+            self.jack_move_timer = random.randint(self.jack_move_timer_min, self.jack_move_timer_max)
+            if self.jack_pos == -1:
+                ... #jumpscare
+            else:
+                self.jack_pos += 1
+                if self.jack_pos > 2:
+                    self.jack_pos = -1 if random.random() < 0.5 else random.choice([0, 1, 2])
+                if self.jack_pos == -1:
+                    self.jack_move_timer = random.randint(self.jack_move_timer_min, self.jack_move_timer_max)
+
         super().update(delta_time)
+
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_F4:
+                Game().toggle_fullscreen()
+            if event.key == pygame.K_ESCAPE:
+                Game().load_scene("MainMenu")
+        return super().handle_event(event)
 
     def look_left(self):
         self.position = max(0, self.position - 1)

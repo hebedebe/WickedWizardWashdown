@@ -201,7 +201,7 @@ class ClickableComponent(Component):
                 if self.on_drag_start:
                     self.on_drag_start()
     
-    def render(self):
+    def _render(self):
         """Debug method to visualize the clickable bounds."""
         if not self.enabled or not self.actor:
             return
