@@ -33,15 +33,15 @@ class GameScene(Scene):
         self.current_camera = 0
         self.cameras = ["cam_basement", "cam_lockerroom", "cam_hotel"]
 
-        self.jack_pos = -1
+        self.jack_pos = 0
         self.jack_positions = ["jack_cam_1", "jack_cam_2", "jack_cam_3", "jack_outside"]
         self.jack_locations = [(20, 70), (0, 0), (0, 0), (640,0)]
         self.jack_sizes = [0.05, 0.1, 0.1, 0.9]
-        self.jack_move_timer = 5
+        self.jack_move_timer = 30
         self.jack_move_timer_min = 5
         self.jack_move_timer_max = 40
-        self.jack_jumpscare_timer_min = 1.5
-        self.jack_jumpscare_timer_max = 3.0
+        self.jack_jumpscare_timer_min = 5
+        self.jack_jumpscare_timer_max = 6
 
         self.touch_o_meter = 0
         self.touch_o_meter_max = 1
@@ -276,11 +276,14 @@ class GameScene(Scene):
         self.touch_o_meter -= delta_time * 0.2
         self.touch_o_meter = max(0, self.touch_o_meter)
 
+        if self.sleep <= 0:
+            Game().load_scene("NoSleep")
+
         self.jack_move_timer -= delta_time
         if self.jack_move_timer <= 0:
             self.jack_move_timer = random.randint(self.jack_move_timer_min, self.jack_move_timer_max)
             if self.jack_pos == -1:
-                ... #jumpscare
+                Game().load_scene("Jumpscare")
             else:
                 self.jack_pos += 1
                 if self.jack_pos > 2:

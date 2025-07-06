@@ -11,6 +11,9 @@ from engine.builtin.shaders import vignette_shader
 # Local scene imports
 from main_menu import MainMenuScene
 from game import GameScene
+from nosleep import NoSleepScene
+from jumpscare import JumpscareScene
+from gameover import GameOverScene
 
 def main(): 
     """Run main"""
@@ -23,6 +26,9 @@ def main():
 
     game.add_scene(MainMenuScene())
     game.add_scene(GameScene())
+    game.add_scene(NoSleepScene())
+    game.add_scene(JumpscareScene())
+    game.add_scene(GameOverScene())
 
     game.load_scene("MainMenu")
 
