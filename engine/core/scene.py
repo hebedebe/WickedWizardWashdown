@@ -29,6 +29,7 @@ class Scene:
         actor.scene = self
         self.actors.append(actor)
         self.actor_map[actor.name] = actor
+        actor.start()
 
     def get_actor(self, name):
         """Get an actor by name."""
@@ -36,6 +37,7 @@ class Scene:
 
     def remove_actor(self, actor):
         """Remove an actor from the scene."""
+        actor.stop()
         actor.scene = None
         self.actors.remove(actor)
         self.actor_map.pop(actor.name, None)
@@ -49,6 +51,16 @@ class Scene:
             # Also add all shapes associated with the body
             for shape in physics_component.shapes:
                 self.physics_space.add(shape)
+
+    def remove_physics(self, actor):
+        """Remove an actor's physics body from the scene's physics space."""
+        from ..builtin.components.physics_component import PhysicsComponent
+        physics_component = actor.getComponent(PhysicsComponent, allow_inheritance=True)
+        if physics_component and physics_component.body:
+            self.physics_space.remove(physics_component.body)
+            # Also remove all shapes associated with the body
+            for shape in physics_component.shapes:
+                self.physics_space.remove(shape)
             
 #endregion
 

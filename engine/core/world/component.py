@@ -29,6 +29,13 @@ class Component(ABC):
         """
         pass
 
+    def stop(self):
+        """
+        Stop the component.
+        Override this method in derived classes to implement specific cleanup behavior.
+        """
+        pass
+
     def handle_event(self, event):
         """
         Handle an event.

@@ -12,6 +12,10 @@ class PhysicsComponent(Component):
         self.body.position = (*self.actor.transform.position,)
         self.body.rotation = self.actor.transform.rotation
         return super().start()
+    
+    def stop(self):
+        Game().current_scene.remove_physics(self.actor)
+        return super().stop()
 
     def update(self, delta_time):
         self.body.position = (*self.actor.transform.position,)

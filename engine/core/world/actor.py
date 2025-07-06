@@ -54,6 +54,16 @@ class Actor():
     @property
     def screenPosition(self):
         return self.transform.position - self.scene.worldOffset
+    
+    def start(self):
+        """Start the actor and its components."""
+        pass
+
+    def stop(self):
+        """Stop the actor and its components."""
+        for component in self.components:
+            component.stop()
+        print(f"Actor {self.name} stopped with {len(self.components)} components.")
 
     def setName(self, name: str) -> None:
         """Set the name of the actor."""
@@ -76,6 +86,7 @@ class Actor():
         if component in self.components:
             self.components.remove(component)
             component.setActor(None)
+            component.stop()  # Call stop to clean up if necessary
 
     def getComponent(self, component_type, allow_inheritance=False):
         """Get a component of a specific type from the actor."""
@@ -89,7 +100,7 @@ class Actor():
                 return comp
         if allow_inheritance:
             for comp in self.components:
-                if issubclass(comp, component_type):
+                if issubclass(comp.__class__, component_type):
                     return comp
         return None
 
