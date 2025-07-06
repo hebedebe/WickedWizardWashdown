@@ -4,6 +4,7 @@ import pymunk
 
 from .physics_component import PhysicsComponent
 from .input_component import InputComponent
+from ...core.game import Game
 
 class PhysicsDragComponent(InputComponent):
     def __init__(self, force=1000):
@@ -18,7 +19,7 @@ class PhysicsDragComponent(InputComponent):
         self.bind_mouse(1, self.on_mouse_up, on_press=False, on_release=True)
 
     def on_mouse_down(self):
-        mouse_pos = self.getScene.tMousePos()
+        mouse_pos = Game().current_scene.world_mouse_pos(True)
         actor_pos = self.actor.transform.position
         dx = mouse_pos[0] - actor_pos[0]
         dy = mouse_pos[1] - actor_pos[1]
@@ -32,19 +33,19 @@ class PhysicsDragComponent(InputComponent):
             if phys:
                 self.mouse_joint = pymunk.PivotJoint(self.mouse_body, phys.body, (0,0), (0,0))
                 self.mouse_joint.max_force = self.force
-                self.actor.scene.physicsSpace.add(self.mouse_body, self.mouse_joint)
+                self.actor.scene.physics_space.add(self.mouse_body, self.mouse_joint)
 
     def on_mouse_up(self):
         self.dragging = False
         if self.mouse_joint:
-            self.actor.scene.physicsSpace.remove(self.mouse_joint)
+            self.actor.scene.physics_space.remove(self.mouse_joint)
             self.mouse_joint = None
         if self.mouse_body:
-            self.actor.scene.physicsSpace.remove(self.mouse_body)
+            self.actor.scene.physics_space.remove(self.mouse_body)
             self.mouse_body = None
 
     def update(self, delta_time):
         if self.dragging and self.mouse_body:
-            mouse_pos = self.getScene.tMousePos()
+            mouse_pos = Game().current_scene.world_mouse_pos(True)
             self.mouse_body.position = mouse_pos
             self.mouse_joint.max_force = abs(self.force*math.log(pygame.Vector2.distance_to(pygame.Vector2(mouse_pos), pygame.Vector2(self.actor.screenPosition))))

@@ -18,6 +18,10 @@ class Scene:
 
         self.worldOffset = pygame.Vector2(0, 0)  # Offset for rendering the world
 
+    def world_mouse_pos(self, as_tuple=False):
+        """Get the mouse position in world coordinates."""
+        pos = pygame.mouse.get_pos() + pygame.Vector2(self.worldOffset)
+        return pos if not as_tuple else (pos.x, pos.y)
 
 #region Actor Management
     def add_actor(self, actor):
@@ -38,9 +42,13 @@ class Scene:
 
     def add_physics(self, actor):
         """Add an actor's physics body to the scene's physics space."""
-        physics_component = actor.getComponent('PhysicsComponent')
+        from ..builtin.components.physics_component import PhysicsComponent
+        physics_component = actor.getComponent(PhysicsComponent, allow_inheritance=True)
         if physics_component and physics_component.body:
             self.physics_space.add(physics_component.body)
+            # Also add all shapes associated with the body
+            for shape in physics_component.shapes:
+                self.physics_space.add(shape)
             
 #endregion
 
@@ -76,6 +84,10 @@ class Scene:
 
     def phys_update(self, dt):
         """Update the scene with the given delta time."""
+        # Step the physics simulation
+        self.physics_space.step(dt)
+        
+        # Update all actors
         for actor in self.actors:
             actor.handlePhysUpdate(dt)
 

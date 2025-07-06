@@ -2,13 +2,15 @@ import pygame
 
 from ...core.world.component import Component
 from .constraint_component import DampedSpringComponent
+from ...core.game import Game
 
 class SpringRendererComponent(Component):
     def __init__(self, other_actor):
         super().__init__()
         self.other_actor = other_actor
 
-    def render(self, surface):
+    def render(self):
+        surface = Game().buffer
         other = self.other_actor
         spring = self.actor.getComponent(DampedSpringComponent)
         if not other or not spring:

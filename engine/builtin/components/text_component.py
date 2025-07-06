@@ -1,7 +1,9 @@
 import pygame
 from typing import Optional, Tuple
 
-from engine.core.world.component import Component
+from ...core.world.component import Component
+from ...core.game import Game
+from ...core.asset_manager import AssetManager
 
 class TextComponent(Component):
     """
@@ -91,19 +93,13 @@ class TextComponent(Component):
         self._cache_dirty = True
         self._rendered_surface = None
         
-    def _get_asset_manager(self):
-        """Get the asset manager from the game instance."""
-        from engine import Game
-        game = Game()
-        return game.assetManager
-        
     def _get_font_object(self) -> pygame.font.Font:
         """Get the font object from the asset manager."""
         # Return cached font if available
         if self._font_object:
             return self._font_object
             
-        asset_manager = self._get_asset_manager()
+        asset_manager = AssetManager()
         
         if self.font_name:
             # Try to get/load the specified font
@@ -246,10 +242,12 @@ class TextComponent(Component):
             
         return rect
         
-    def render(self, surface: pygame.Surface) -> None:
+    def render(self) -> None:
         """Render the text component."""
         if not self.visible or not self.text or not self.actor:
             return
+        
+        surface = Game().buffer
             
         # Get the rendered text surface
         text_surface = self._get_rendered_surface()

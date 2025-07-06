@@ -1,7 +1,7 @@
-# engine/component/builtin/boxRendererComponent.py
+import pygame
 
 from ...core.world.component import Component
-import pygame
+from ...core.game import Game
 
 class BoxRendererComponent(Component):
     def __init__(self, size=(50, 50), color=(255, 255, 255)):
@@ -9,9 +9,8 @@ class BoxRendererComponent(Component):
         self.size = size
         self.color = color
 
-    def render(self, screen):
-        if not self.actor or not self.actor.physics:
-            return
+    def render(self):
+        screen = Game().buffer
 
         width, height = self.size
         center = self.actor.screenPosition
