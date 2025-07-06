@@ -1,6 +1,8 @@
 import pygame
 from typing import Callable, Dict, Optional, Set, Any
-from engine.core.world.component import Component
+
+from ...core.world.component import Component
+from ...core.game import Game
 
 class InputComponent(Component):
     """
@@ -105,12 +107,6 @@ class InputComponent(Component):
         """Get all currently pressed mouse buttons."""
         return self._pressed_mouse.copy()
         
-    def _get_input_manager(self):
-        """Get the input manager from the game instance."""
-        from engine import Game
-        game = Game()
-        return game.inputManager
-        
     def handle_key_event(self, event: pygame.event.Event) -> bool:
         """
         Handle a keyboard event.
@@ -194,10 +190,7 @@ class InputComponent(Component):
         """Update the input component."""
         super().update(dt)
         
-        # Sync with the global input manager state
-        input_manager = self._get_input_manager()
-        
-        # Update key states based on current input manager state
+        # Update key states based on current pygame state
         all_keys = pygame.key.get_pressed()
         current_pressed = set()
         
@@ -206,6 +199,16 @@ class InputComponent(Component):
                 current_pressed.add(key_code)
                 
         # Update our tracked state
+        self._pressed_keys = current_pressed
+        
+        # Update mouse states
+        mouse_pressed = pygame.mouse.get_pressed()
+        mouse_current = set()
+        for i, pressed in enumerate(mouse_pressed):
+            if pressed:
+                mouse_current.add(i + 1)  # pygame uses 0-based, we use 1-based
+                
+        self._pressed_mouse = mouse_current
         self._pressed_keys = current_pressed
         
         # Update mouse button states
