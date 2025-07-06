@@ -14,6 +14,7 @@ from game import GameScene
 from nosleep import NoSleepScene
 from jumpscare import JumpscareScene
 from gameover import GameOverScene
+from win import WinScene
 
 def main(): 
     """Run main"""
@@ -29,6 +30,7 @@ def main():
     game.add_scene(NoSleepScene())
     game.add_scene(JumpscareScene())
     game.add_scene(GameOverScene())
+    game.add_scene(WinScene())
 
     game.load_scene("MainMenu")
 
