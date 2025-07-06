@@ -12,7 +12,7 @@ class SpringRendererComponent(Component):
     def render(self):
         surface = Game().buffer
         other = self.other_actor
-        spring = self.actor.getComponent(DampedSpringComponent)
+        spring = self.actor.get_component(DampedSpringComponent)
         if not other or not spring:
             return
         pos1 = self.actor.transform.position

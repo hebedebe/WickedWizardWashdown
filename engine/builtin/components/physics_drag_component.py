@@ -29,7 +29,7 @@ class PhysicsDragComponent(InputComponent):
             self.mouse_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
             self.mouse_body.position = mouse_pos
             # Create a pivot joint between mouse and actor
-            phys = self.actor.getComponent(PhysicsComponent, allow_inheritance=True)
+            phys = self.actor.get_component(PhysicsComponent, allow_inheritance=True)
             if phys:
                 self.mouse_joint = pymunk.PivotJoint(self.mouse_body, phys.body, (0,0), (0,0))
                 self.mouse_joint.max_force = self.force

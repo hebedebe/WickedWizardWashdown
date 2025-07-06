@@ -81,7 +81,7 @@ class ClickableComponent(Component):
         
         if width is None or height is None:
             # Try to get dimensions from sprite component
-            sprite_comp = self.actor.getComponent("SpriteComponent")
+            sprite_comp = self.actor.get_component("SpriteComponent")
             if sprite_comp and sprite_comp.sprite_name:
                 from engine.core.asset_manager import AssetManager
                 try:

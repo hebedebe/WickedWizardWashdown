@@ -49,7 +49,7 @@ class Actor():
         self.children: list['Actor'] = []
 
         for component in components: # done here so components are added properly
-            self.addComponent(component)
+            self.add_component(component)
 
     @property
     def screenPosition(self):
@@ -69,26 +69,26 @@ class Actor():
         """Set the name of the actor."""
         self.name = name
 
-    def addComponent(self, component) -> None:
+    def add_component(self, component) -> None:
         """Add a component to the actor."""
         assert component not in self.components, "Component already exists in actor"
         self.components.append(component)
         component.setActor(self)
         print(f"Added component {component.__class__.__name__} to actor {self.name}")
 
-    def addComponents(self, *args) -> None:
+    def add_components(self, *args) -> None:
         """Add multiple components to the actor."""
         for component in args:
-            self.addComponent(component)
+            self.add_component(component)
 
-    def removeComponent(self, component) -> None:
+    def remove_component(self, component) -> None:
         """Remove a component from the actor."""
         if component in self.components:
             self.components.remove(component)
             component.setActor(None)
             component.stop()  # Call stop to clean up if necessary
 
-    def getComponent(self, component_type, allow_inheritance=False):
+    def get_component(self, component_type, allow_inheritance=False):
         """Get a component of a specific type from the actor."""
         if type(component_type) is str:
             # If a string is passed, treat it as a class name
@@ -246,7 +246,7 @@ class Actor():
         # Deserialize and add components
         for component_data in data.get("components", []):
             component = Component.createFromData(component_data)
-            actor.addComponent(component)
+            actor.add_component(component)
         return actor
 
     @staticmethod
